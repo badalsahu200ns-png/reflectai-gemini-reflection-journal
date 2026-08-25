@@ -1,145 +1,732 @@
-# Agentic Threat Modeling & Security Studio
+# ReflectAI – Gemini Reflection Journal
 
-> **Enterprise-Grade Agentic Threat Modeling, OWASP LLM Security Auditor, Resilient Gemini Fallback Ladder, and Cloud Run Compliance Deployment Suite.**
+**ReflectAI** is an AI-powered personal reflection journal built with **Google AI Studio, Gemini, and Google Cloud Run**.
+
+It provides an authenticated environment where users can record personal reflections and use generative AI to analyze their entries, identify themes, generate insights, and encourage deeper self-reflection.
+
+The project was developed as part of the **Build a User-Authenticated AI Application with Custom Instructions on Google AI Studio & Cloud Run** challenge.
 
 ---
 
-## 1. Prerequisites & GCP API Enablement
+## Live Application
 
-Ensure you have the Google Cloud SDK (`gcloud` CLI) installed and authenticated:
+**ReflectAI – Gemini Reflection Journal**
 
-```bash
-# 1. Authenticate with Google Cloud
-gcloud auth login
+https://ai.studio/apps/63a3194c-c56e-4f29-bd42-92c02a3f09cb
 
-# 2. Select target GCP project
-gcloud config set project YOUR_GCP_PROJECT_ID
+---
 
-# 3. Enable necessary Google Cloud services
-gcloud services enable \
-  run.googleapis.com \
-  secretmanager.googleapis.com \
-  firestore.googleapis.com \
-  cloudbuild.googleapis.com
+## Project Overview
+
+ReflectAI started as a user-authenticated AI application and was expanded into a more complete AI-powered reflection platform.
+
+The goal is to demonstrate how **Generative AI can be integrated into a secure, authenticated, cloud-deployed application** rather than being used only as a standalone chatbot.
+
+ReflectAI combines:
+
+* User authentication
+* Personal journal management
+* Gemini-powered AI reflection
+* Custom AI instructions
+* Personalized insights
+* Reflection analytics
+* Location-aware journal capabilities
+* Administrative controls
+* Security-focused application design
+* Cloud Run deployment
+
+---
+
+## Key Features
+
+### User Authentication
+
+ReflectAI provides authenticated access so users can securely interact with their personal journal.
+
+Users can:
+
+* Sign in using supported authentication
+* Access their personal journal
+* Create journal entries
+* View their own entries
+* Edit their entries
+* Delete their entries
+* Receive personalized AI insights
+
+---
+
+### AI-Powered Reflection
+
+Gemini analyzes journal entries and generates personalized reflection insights.
+
+The AI can identify:
+
+* Mood
+* Themes
+* Key observations
+* Reflection patterns
+* Important points
+* Follow-up reflection questions
+* Personalized insights
+
+Example:
+
+```text
+Journal Entry
+────────────────────────────
+
+Today I completed an important part
+of my AI project. I learned a lot about
+Google Cloud and deployment.
+
+AI Reflection
+────────────────────────────
+
+Mood:
+Positive
+
+Themes:
+• Learning
+• Productivity
+• Career
+
+Key Insight:
+Completing a practical deployment milestone
+appears to have increased your confidence
+and motivation.
+
+Reflection Question:
+What was the most valuable lesson you learned
+from today's experience?
 ```
 
 ---
 
-## 2. Secret Manager Provisioning & IAM Bindings
+## Custom AI Instructions
 
-Zero hardcoded credentials in codebase or git repositories:
+One of the core parts of the project is the use of **custom instructions in Google AI Studio**.
 
-```bash
-# Create the secret in Secret Manager
-gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
+Custom instructions help guide the AI toward:
 
-# Populate the secret value securely from stdin
-echo -n "YOUR_GEMINI_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
+* Consistent responses
+* Application-specific behavior
+* Structured outputs
+* Secure handling of application data
+* Appropriate error handling
+* User-focused responses
+* Production-oriented development practices
 
-# Retrieve your GCP Project Number
-PROJECT_NUMBER=$(gcloud projects describe $(gcloud config get-value project) --format="value(projectNumber)")
+The instructions can also be extended when introducing additional services such as Google Maps, administrative functionality, or notification integrations.
 
-# Grant the Cloud Run default runtime service account access to read the secret
-gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
-  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-  --role="roles/secretmanager.secretAccessor"
+---
+
+## Reflection Analytics
+
+ReflectAI can transform journal activity into meaningful personal insights.
+
+Example analytics include:
+
+```text
+Reflection Analytics
+────────────────────────────
+
+Total Entries
+42
+
+Current Streak
+7 Days
+
+Most Common Themes
+Learning
+Career
+Productivity
+
+Reflection Trend
+Positive
+```
+
+The analytics experience is designed to help users understand patterns across their reflections rather than simply storing journal entries.
+
+---
+
+## Location-Aware Journal Entries
+
+ReflectAI can associate a journal entry with a location using **Google Maps integration**.
+
+Example:
+
+```text
+Journal Entry
+────────────────────────────
+
+Title:
+A productive afternoon
+
+Reflection:
+I worked on my AI project and learned
+more about cloud deployment.
+
+Location:
+📍 Bhubaneswar, Odisha
+```
+
+Location data should be handled carefully and only stored or displayed according to the application's authorization and privacy requirements.
+
+---
+
+## Admin Dashboard
+
+ReflectAI can provide administrative functionality using **role-based access control (RBAC)**.
+
+Administrative capabilities may include:
+
+* User management
+* Application monitoring
+* Security monitoring
+* Administrative analytics
+* Audit activity
+
+Administrative access must be verified server-side rather than relying only on frontend UI controls.
+
+Example:
+
+```text
+Normal User
+     │
+     └── /admin
+             │
+             ▼
+        403 Forbidden
+
+
+Administrator
+     │
+     └── /admin
+             │
+             ▼
+        Authorized
 ```
 
 ---
 
-## 3. Secure Firestore Database & Owner-Bound Security Rules
+## Security
 
-Provision Firestore in Native Mode:
+Security is an important part of the ReflectAI architecture.
 
-```bash
-gcloud firestore databases create --location=us-central1 --type=firestore-native
+The application is designed with the following principles:
+
+### Authentication
+
+Only authenticated users should be able to access protected application functionality.
+
+### Authorization
+
+Users should only be able to access resources they are authorized to access.
+
+For example:
+
+```text
+User A
+   │
+   ├── Own journal → ✓ Allowed
+   │
+   └── User B journal → ✗ Denied
 ```
 
-Deploy the owner-bound security rules (`firestore.rules`):
+### API Keys and Secrets
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Owner-bound personal interactions and user data isolation
-    match /users/{userId}/interactions/{interactionId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
+Production credentials should never be committed to GitHub.
 
-    // User profile documents
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
+Sensitive information such as:
 
-    // Default deny for all other paths
-    match /{document=**} {
-      allow read, write: if false;
-    }
-  }
+```text
+API keys
+Passwords
+OAuth secrets
+Service account credentials
+Private keys
+```
+
+must be stored using appropriate secret/environment configuration.
+
+Example:
+
+```text
+.env
+credentials.json
+service-account.json
+*.pem
+```
+
+should not be committed to the repository.
+
+### Input Validation
+
+User input and API requests should be validated before processing.
+
+### Error Handling
+
+The application should gracefully handle:
+
+* Authentication errors
+* API failures
+* Network failures
+* Invalid requests
+* Database errors
+* Unauthorized requests
+* Missing configuration
+
+The goal is to prevent failures from resulting in an unusable application experience.
+
+---
+
+## Architecture
+
+```text
+                         ┌──────────────────┐
+                         │       User       │
+                         └────────┬─────────┘
+                                  │
+                           Authentication
+                                  │
+                                  ▼
+                       ┌────────────────────┐
+                       │      ReflectAI     │
+                       │      Cloud Run     │
+                       └─────────┬──────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              │                  │                  │
+              ▼                  ▼                  ▼
+        Journal System       Gemini AI          Analytics
+              │                  │                  │
+              │                  ▼                  │
+              │          AI Reflection              │
+              │          & Insights                 │
+              │                                     │
+              └─────────────────┬───────────────────┘
+                                │
+                         Google Maps
+                                │
+                                ▼
+                     Location-aware Entries
+
+                                │
+                                ▼
+                       ┌────────────────┐
+                       │ Admin Dashboard│
+                       └───────┬────────┘
+                               │
+                              RBAC
+                               │
+                         Audit Controls
+```
+
+---
+
+## Technology Stack
+
+| Technology            | Purpose                               |
+| --------------------- | ------------------------------------- |
+| Google AI Studio      | AI application development            |
+| Gemini                | Generative AI and reflection analysis |
+| Google Cloud Run      | Application deployment                |
+| Google Cloud          | Cloud infrastructure                  |
+| Google Maps Platform  | Location functionality                |
+| GitHub                | Source-code management                |
+| Google Authentication | User authentication                   |
+| Frontend Framework    | Application interface                 |
+| Database              | User and journal data                 |
+
+> Update the final two rows with the exact framework and database used by your application.
+
+---
+
+## Application Flow
+
+```text
+User
+ │
+ ▼
+Google Authentication
+ │
+ ▼
+ReflectAI Dashboard
+ │
+ ├───────────────┐
+ │               │
+ ▼               ▼
+Create Entry    View Entries
+ │
+ ▼
+Gemini AI Analysis
+ │
+ ├── Mood
+ ├── Themes
+ ├── Insights
+ └── Reflection Question
+ │
+ ▼
+Personal Analytics
+```
+
+---
+
+## Example AI Response Structure
+
+ReflectAI can process a journal entry and produce structured information such as:
+
+```json
+{
+  "summary": "The user made meaningful progress today.",
+  "mood": "positive",
+  "themes": [
+    "learning",
+    "productivity",
+    "career"
+  ],
+  "key_insight": "Practical progress is contributing to increased motivation.",
+  "reflection_question": "What was the most valuable lesson from today?"
 }
 ```
 
-Deploy rules using Firebase CLI:
+Structured AI output makes the generated information easier to display consistently inside the application.
+
+---
+
+## Google AI Studio
+
+The project was initially developed using **Google AI Studio** and its application-building capabilities.
+
+Google AI Studio was used to:
+
+* Develop the application
+* Configure custom instructions
+* Integrate Gemini
+* Build and refine the user experience
+* Extend the initial prototype
+* Prepare the application for cloud deployment
+
+The application was subsequently deployed to Google Cloud Run.
+
+---
+
+## Google Cloud Run
+
+ReflectAI is deployed as a cloud application using **Google Cloud Run**.
+
+Conceptually:
+
+```text
+Source Code
+     │
+     ▼
+GitHub
+     │
+     ▼
+Build / Deployment
+     │
+     ▼
+Container
+     │
+     ▼
+Google Cloud Run
+     │
+     ▼
+ReflectAI
+```
+
+Cloud Run provides a scalable environment for hosting the deployed application.
+
+---
+
+## Local Development
+
+Clone the repository:
+
 ```bash
-firebase deploy --only firestore:rules
+git clone https://github.com/YOUR_USERNAME/reflectai-gemini-reflection-journal.git
+```
+
+Enter the project directory:
+
+```bash
+cd reflectai-gemini-reflection-journal
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create your local environment configuration:
+
+```bash
+cp .env.example .env
+```
+
+Configure the required environment variables.
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+> If your AI Studio project uses different commands, replace the commands above with the commands specified by your project's `package.json`.
+
+---
+
+## Environment Variables
+
+Create a `.env` file for local development.
+
+Example:
+
+```env
+GEMINI_API_KEY=your_api_key_here
+```
+
+Never commit the real value to GitHub.
+
+The repository should contain:
+
+```text
+.env.example
+```
+
+but should not contain:
+
+```text
+.env
+```
+
+with production secrets.
+
+---
+
+## Project Structure
+
+The project structure depends on the application framework generated by Google AI Studio.
+
+A typical structure may look like:
+
+```text
+reflectai-gemini-reflection-journal/
+│
+├── README.md
+├── .gitignore
+├── .env.example
+├── package.json
+│
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── services/
+│   ├── auth/
+│   ├── analytics/
+│   └── ...
+│
+├── public/
+│
+├── tests/
+│   ├── auth/
+│   ├── journal/
+│   └── security/
+│
+└── docs/
+    └── screenshots/
 ```
 
 ---
 
-## 4. Google Cloud Run Deployment
+## Testing
 
-Deploy the containerized full-stack application to Cloud Run with Secret Manager mounting:
+The application should be tested across the major user flows.
 
-```bash
-gcloud run deploy agentic-threat-modeling-studio \
-  --source . \
-  --region=us-central1 \
-  --platform=managed \
-  --allow-unauthenticated \
-  --set-secrets="GEMINI_API_KEY=GEMINI_API_KEY:latest" \
-  --set-env-vars="NODE_ENV=production"
+### Authentication
+
+* Google sign-in
+* Sign-out
+* Unauthorized access
+* Session handling
+
+### Journal
+
+* Create entry
+* View entry
+* Edit entry
+* Delete entry
+* Invalid input
+
+### AI
+
+* Gemini response
+* Invalid/empty input
+* API failure
+* Retry behavior
+
+### Security
+
+* Unauthorized resource access
+* Cross-user data access
+* Admin authorization
+* Secret exposure
+* Invalid API requests
+
+### Deployment
+
+* Cloud Run availability
+* Production configuration
+* API connectivity
+* Error handling
+
+---
+
+## Challenge
+
+ReflectAI was developed as part of the Google Cloud Run AI challenge:
+
+**Build a User-Authenticated AI Application with Custom Instructions on Google AI Studio & Cloud Run**
+
+The project extends the core prototype with additional application capabilities and production-oriented considerations.
+
+### Challenge Hashtag
+
+```text
+#AccelerateAIwithCloudRun
 ```
 
 ---
 
-## 5. Mandatory Campaign Verification Labeling
+## What Makes ReflectAI Different
 
-Apply the mandatory challenge verification label to register your Cloud Run service:
+The project focuses on combining several capabilities into a single application:
 
-```bash
-gcloud run services update agentic-threat-modeling-studio \
-  --update-labels=dev-tutorial=cloud-run-ai-challenge \
-  --region=us-central1
+```text
+Authentication
+      +
+Generative AI
+      +
+Personal Journaling
+      +
+AI Insights
+      +
+Analytics
+      +
+Location Context
+      +
+Security
+      +
+Cloud Deployment
 ```
 
-Verify the label is actively bound:
-```bash
-gcloud run services describe agentic-threat-modeling-studio \
-  --region=us-central1 \
-  --format="value(metadata.labels)"
-```
+Rather than treating Gemini as a simple chatbot, ReflectAI uses generative AI as part of a broader authenticated application workflow.
 
 ---
 
-## 6. Architecture & Resilient Gemini Fallback Ladder
+## Future Improvements
 
-The backend service enforces an automated 4-tier model fallback ladder across all LLM interactions:
-1. **Primary**: `gemini-3.6-flash` (Balanced latency and intelligence)
-2. **High-Availability Fallback**: `gemini-3.1-flash-lite` (Ultra-low latency instant failover)
-3. **Dynamic Stable Alias**: `gemini-flash-latest` (Continuous platform-managed alias)
-4. **Deep Reasoning Fallback**: `gemini-3.7-flash` (Deep analytical reasoning)
+Potential future enhancements include:
 
-### Server Payload Robustness
-- **Top-Level Middleware**: `express.json({ limit: '10mb' })` mounted upstream of all routes.
-- **Defensive Deserialization**: Null-safe destructuring with fallback defaults on every endpoint.
-- **Strict Undefined-Stripping**: Zero-crash object sanitization preventing database driver errors.
-- **Guaranteed Transaction Verification**: Preserves form buffers and displays retry banners on interrupted writes.
+* Advanced long-term reflection analysis
+* More detailed mood and theme trends
+* AI-generated monthly reports
+* Additional notification integrations
+* Slack integration
+* Discord integration
+* Email summaries
+* Advanced admin monitoring
+* Automated security testing
+* Continuous integration and deployment
+* Expanded personalization
+* Improved observability and monitoring
 
 ---
 
-## 7. Security Standards Compliance
+## Screenshots
 
-- **OWASP Top 10 for LLM Applications**: Mitigates Prompt Injection (LLM01), Sensitive Info Disclosure (LLM02), Insecure Output Handling (LLM05), and Excessive Agency (LLM06).
-- **OWASP Web Top 10**: Mitigates Broken Access Control (A01), Injection (A03), and Security Misconfigurations (A05).
-- **Zero Insecure Defaults**: Prohibits open wildcards (`allow read, write: if true;`).
+### Dashboard
+
+Add your screenshot here:
+
+```text
+docs/screenshots/dashboard.png
+```
+
+Example Markdown:
+
+```markdown
+![ReflectAI Dashboard](docs/screenshots/dashboard.png)
+```
+
+### Journal
+
+```markdown
+![ReflectAI Journal](docs/screenshots/journal.png)
+```
+
+### AI Reflection
+
+```markdown
+![ReflectAI AI Reflection](docs/screenshots/ai-reflection.png)
+```
+
+### Analytics
+
+```markdown
+![ReflectAI Analytics](docs/screenshots/analytics.png)
+```
+
+### Admin Dashboard
+
+```markdown
+![ReflectAI Admin Dashboard](docs/screenshots/admin.png)
+```
+
+> Only include screenshots for features that are actually implemented.
+
+---
+
+## Repository
+
+GitHub repository:
+
+```text
+https://github.com/YOUR_USERNAME/reflectai-gemini-reflection-journal
+```
+
+Replace `YOUR_USERNAME` with your actual GitHub username.
+
+---
+
+## Live Demo
+
+**ReflectAI – Gemini Reflection Journal**
+
+https://ai.studio/apps/63a3194c-c56e-4f29-bd42-92c02a3f09cb
+
+---
+
+## Author
+
+**Badal Kumar Sahu**
+
+Business Analytics | AI Strategy | Product & Technology
+
+Email: **[badalsahu200ns@gmail.com](mailto:badalsahu200ns@gmail.com)**
+
+---
+
+## Acknowledgements
+
+This project was developed using Google AI Studio, Gemini, and Google Cloud Run as part of the **#AccelerateAIwithCloudRun** challenge.
+
+---
+
+## License
+
+This project is intended for educational, portfolio, and challenge showcase purposes.
+
+Add an appropriate open-source license such as MIT if you intend to allow others to reuse and modify the source code.
