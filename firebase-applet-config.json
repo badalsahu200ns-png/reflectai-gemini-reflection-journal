@@ -1,7 +1,6 @@
 {
   "projectId": "badal-agent-ai",
   "appId": "1:282343871161:web:03ce165b0882dfb2008168",
-  "apiKey": "AIzaSyBNpxwWlwk4oNAEkWh6WPuKWE83QDmPGtg",
   "authDomain": "badal-agent-ai.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-agenticthreatmod-63a3194c-c56e-4f29-bd42-92c02a3f09cb",
   "storageBucket": "badal-agent-ai.firebasestorage.app",
