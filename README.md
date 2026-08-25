@@ -26,7 +26,6 @@ https://ai.studio/apps/63a3194c-c56e-4f29-bd42-92c02a3f09cb
 * Secure user-specific data access
 * Error handling and input validation
 
-> Remove any feature above that is not actually implemented in the deployed application.
 
 ## Technology Stack
 
@@ -76,8 +75,6 @@ ReflectAI uses Gemini to analyze journal entries and generate:
 * Follow-up reflection questions
 * Personalized insights
 
-Custom instructions in Google AI Studio are used to guide the AI's behavior and application-specific responses.
-
 ## Security
 
 Security was considered as part of the application design.
@@ -93,8 +90,6 @@ Key practices include:
 * No production API keys committed to GitHub
 * Input validation
 * Error handling
-
-Sensitive files and credentials should not be committed to the repository.
 
 ## Deployment
 
@@ -115,20 +110,6 @@ Google AI Studio
        ▼
    ReflectAI
 ```
-
-## Repository
-
-**GitHub:**
-
-https://github.com/YOUR_USERNAME/reflectai-gemini-reflection-journal
-
-Replace `YOUR_USERNAME` with your GitHub username.
-
-## Challenge
-
-Built as part of the **Build a User-Authenticated AI Application with Custom Instructions on Google AI Studio & Cloud Run** challenge.
-
-**#AccelerateAIwithCloudRun**
 
 ## Author
 
