@@ -13,7 +13,10 @@ import {
   RefreshCw,
   HelpCircle,
   Clock,
-  Send
+  Send,
+  RotateCcw,
+  Trash2,
+  HardDrive
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -21,6 +24,7 @@ import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
 import { JournalEntry, JournalMood, EntryTurn, ReflectionActionType } from '../types';
 import { handleFirestoreError, OperationType } from '../firebase/firestoreErrors';
+import { useJournalDraft } from '../hooks/useJournalDraft';
 
 interface JournalEditorProps {
   initialEntry?: JournalEntry | null;
@@ -134,6 +138,29 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [statusMessage, setStatusMessage] = useState<string>('');
 
+  // Local storage draft sync hook
+  const {
+    hasUnsavedDraft,
+    restoreDraft,
+    discardDraft,
+    clearDraft,
+    updateDraft,
+    formattedLastSaved
+  } = useJournalDraft({
+    entryId,
+    userId: user?.uid,
+    initialData: {
+      title,
+      content,
+      category,
+      mood,
+      tags,
+      actionType
+    },
+    debounceMs: 600,
+    enabled: true
+  });
+
   const [validationReport, setValidationReport] = useState<{
     isValid: boolean;
     threats: string[];
@@ -155,7 +182,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
     }
   }, [initialEntry]);
 
-  // Live validation on text change
+  // Live validation and draft sync on text/field changes
   useEffect(() => {
     const report = validateAndSanitizeInput(content);
     setValidationReport({
@@ -163,7 +190,33 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       threats: report.threats,
       warnings: report.warnings
     });
-  }, [content]);
+
+    // Sync active state to local storage draft
+    updateDraft({
+      entryId,
+      title,
+      content,
+      category,
+      mood,
+      tags,
+      actionType
+    });
+  }, [content, title, category, mood, tags, actionType, entryId, updateDraft]);
+
+  // Handle restoring saved draft from local storage
+  const handleRestoreDraft = () => {
+    const restored = restoreDraft();
+    if (restored) {
+      setTitle(restored.title || '');
+      setContent(restored.content || '');
+      setCategory(restored.category || 'Daily Reflection');
+      setMood(restored.mood || 'Thoughtful');
+      setTags(restored.tags || ['Reflection']);
+      if (restored.actionType) setActionType(restored.actionType);
+      setStatusMessage('Local draft successfully restored.');
+      setSaveStatus('idle');
+    }
+  };
 
   // Tag Management
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -238,6 +291,9 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
         ...entryPayload,
         firestoreUpdatedAt: serverTimestamp()
       }, { merge: true });
+
+      // Clear local draft upon confirmed Firestore write
+      clearDraft();
 
       setSaveStatus('saved');
       setStatusMessage('Successfully persisted to Cloud Firestore under your UID.');
@@ -324,6 +380,46 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
 
   return (
     <div className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 sm:p-6 space-y-5 shadow-2xl" id="journal-editor-container">
+      {/* Unsaved Local Draft Detected Banner */}
+      {hasUnsavedDraft && (
+        <div
+          className="p-3 sm:p-4 rounded-xl bg-purple-950/70 border border-purple-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg"
+          id="banner-unsaved-draft"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-purple-900/80 border border-purple-700/70 flex items-center justify-center text-purple-300 shrink-0">
+              <HardDrive className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-purple-200">
+                Unsaved local reflection draft recovered
+              </p>
+              <p className="text-[11px] text-purple-300/80">
+                We safely cached your inputs before the tab refreshed or closed.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              onClick={handleRestoreDraft}
+              className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow active:scale-95"
+              id="btn-restore-draft"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Restore Draft
+            </button>
+            <button
+              onClick={discardDraft}
+              className="px-2.5 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-800 text-xs font-medium flex items-center gap-1 transition-colors"
+              id="btn-discard-draft"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Editor Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-neutral-800/80 pb-4">
         <div className="flex items-center gap-2.5">
@@ -331,14 +427,21 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             <FileEdit className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              Journal Editor
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-white">Journal Editor</h2>
               <span className="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 text-[10px] font-mono">
-                Scoped to UID: {user?.uid ? `${user.uid.slice(0, 8)}...` : 'Guest'}
+                UID: {user?.uid ? `${user.uid.slice(0, 8)}...` : 'Guest'}
               </span>
-            </h2>
+              <span
+                className="px-2 py-0.5 rounded bg-neutral-900 text-neutral-400 border border-neutral-800 text-[10px] flex items-center gap-1"
+                title="Synced to local storage"
+              >
+                <HardDrive className="w-2.5 h-2.5 text-purple-400" />
+                {formattedLastSaved}
+              </span>
+            </div>
             <p className="text-[11px] text-neutral-400">
-              Captures user text input, validates against injection, and persists directly to Cloud Firestore.
+              Captures text, auto-syncs drafts to local storage, and persists directly to Cloud Firestore.
             </p>
           </div>
         </div>

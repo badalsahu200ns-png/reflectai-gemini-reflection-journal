@@ -7,12 +7,15 @@ export type ThreatZone =
 
 export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIONAL';
 
+export type UserRole = 'admin' | 'moderator' | 'member' | 'guest';
+
 export interface UserProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
   isAnonymous?: boolean;
+  role?: UserRole;
   createdAt?: string;
 }
 
@@ -38,6 +41,24 @@ export interface StructuredSummary {
 
 export type JournalMood = 'Thoughtful' | 'Energized' | 'Calm' | 'Focused' | 'Anxious' | 'Curious' | 'Grateful';
 
+export interface JournalLocation {
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  placeId?: string;
+}
+
+export interface AIMoodAnalysis {
+  sentimentScore: number; // 0 (negative/stressed) to 100 (positive/joyful)
+  energyLevel: number; // 1 to 10
+  dominantMood: JournalMood;
+  emotionalKeywords: string[];
+  growthOpportunities: string[];
+  mindfulnessAdvice: string;
+  analyzedAt: string;
+}
+
 export interface JournalEntry {
   id: string;
   userId: string;
@@ -47,10 +68,98 @@ export interface JournalEntry {
   tags: string[];
   turns: EntryTurn[];
   summary?: StructuredSummary | null;
+  moodAnalysis?: AIMoodAnalysis | null;
+  location?: JournalLocation | null;
   createdAt: string; // ISO string
   updatedAt: string; // ISO string
   isPinned?: boolean;
   wordCount?: number;
+}
+
+export type JournalThemeId =
+  | 'twilight'
+  | 'sepia'
+  | 'emerald'
+  | 'rose'
+  | 'ocean'
+  | 'monochrome';
+
+export interface JournalThemeConfig {
+  id: JournalThemeId;
+  name: string;
+  description: string;
+  previewBg: string;
+  previewAccent: string;
+  classes: {
+    bg: string;
+    card: string;
+    border: string;
+    accent: string;
+    accentHover: string;
+    textPrimary: string;
+    textSecondary: string;
+  };
+}
+
+export interface NotificationSettings {
+  dailyReminderEnabled: boolean;
+  dailyReminderTime: string; // e.g. "20:00"
+  weeklyDigestEmailEnabled: boolean;
+  digestEmail: string;
+  slackWebhookUrl: string;
+  slackEnabled: boolean;
+  discordWebhookUrl: string;
+  discordEnabled: boolean;
+  notifyOnStreakMilestone: boolean;
+  notifyOnWeeklySummary: boolean;
+}
+
+export interface WeeklyAISummary {
+  id: string;
+  userId: string;
+  weekStartDate: string;
+  weekEndDate: string;
+  entryCount: number;
+  totalWords: number;
+  dominantMoods: string[];
+  executiveSummary: string;
+  emotionalTrajectory: string;
+  keyBreakthroughs: string[];
+  recurringChallenges: string[];
+  actionPlan: string[];
+  nextWeekPrompts: string[];
+  generatedAt: string;
+}
+
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  totalActiveDays: number;
+  lastJournaledDate: string | null;
+  isStreakActiveToday: boolean;
+  streakStatus: 'ACTIVE' | 'AT_RISK' | 'INACTIVE';
+  milestones: {
+    id: string;
+    name: string;
+    days: number;
+    unlocked: boolean;
+    unlockedAt?: string;
+    badgeIcon: string;
+  }[];
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userEmail?: string;
+  userRole: UserRole;
+  action: string;
+  category: 'AUTH' | 'ENTRY_MUTATION' | 'AI_GENERATION' | 'NOTIFICATION' | 'SECURITY' | 'ADMIN';
+  resource: string;
+  status: 'SUCCESS' | 'FAILURE' | 'WARNING';
+  details?: string;
+  ipAddress?: string;
 }
 
 export interface ThreatItem {
@@ -58,7 +167,7 @@ export interface ThreatItem {
   threatZone: ThreatZone;
   threatName: string;
   description: string;
-  owaspMapping: string; // e.g., "OWASP LLM01: Prompt Injection" or "OWASP A01: Broken Access"
+  owaspMapping: string;
   severity: SeverityLevel;
   attackVector: string;
   countermeasure: string;
@@ -79,7 +188,7 @@ export interface ThreatModelReport {
     criticalRisks: string[];
   }[];
   executiveSummary: string;
-  overallRiskScore: number; // 0 - 100
+  overallRiskScore: number;
   modelUsed: string;
   fallbackTelemetry?: FallbackTelemetry;
 }

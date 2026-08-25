@@ -78,7 +78,14 @@ export const JournalWorkspace: React.FC<JournalWorkspaceProps> = ({
   isSaving,
   onAiStateChange
 }) => {
-  const [inputText, setInputText] = useState('');
+  const [inputText, setInputText] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(`reflectai_workspace_draft_${entry.id}`) || '';
+      }
+    } catch {}
+    return '';
+  });
   const [selectedAction, setSelectedAction] = useState<ReflectionActionType>('reflection');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStage, setGenerationStage] = useState<string>('');
@@ -94,9 +101,29 @@ export const JournalWorkspace: React.FC<JournalWorkspaceProps> = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Sync workspace input text to localStorage to protect against tab refreshes
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        if (inputText.trim()) {
+          window.localStorage.setItem(`reflectai_workspace_draft_${entry.id}`, inputText);
+        } else {
+          window.localStorage.removeItem(`reflectai_workspace_draft_${entry.id}`);
+        }
+      }
+    } catch {}
+  }, [inputText, entry.id]);
+
   useEffect(() => {
     setTitleInput(entry.title || 'Untitled Reflection');
     setCompletedActionItems({});
+    // Load cached draft for this specific entry if switching entries
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const cached = window.localStorage.getItem(`reflectai_workspace_draft_${entry.id}`);
+        if (cached) setInputText(cached);
+      }
+    } catch {}
   }, [entry.id]);
 
   useEffect(() => {
@@ -202,6 +229,11 @@ export const JournalWorkspace: React.FC<JournalWorkspaceProps> = ({
 
     if (!customPrompt) {
       setInputText('');
+      try {
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.removeItem(`reflectai_workspace_draft_${entry.id}`);
+        }
+      } catch {}
     }
 
     try {

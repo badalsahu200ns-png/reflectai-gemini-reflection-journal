@@ -21,7 +21,13 @@ import {
   Layers,
   CheckCircle2,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  BarChart3,
+  Globe,
+  Terminal,
+  ShieldAlert,
+  GitBranch,
+  Flame
 } from 'lucide-react';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
@@ -31,10 +37,25 @@ import { JournalHistorySidebar } from './JournalHistorySidebar';
 import { JournalWorkspace } from './JournalWorkspace';
 import { JournalEditor } from './JournalEditor';
 import { HistoryView } from './HistoryView';
+import { AnalyticsView } from './AnalyticsView';
+import { WorldReflectionMap } from './WorldReflectionMap';
+import { AutomatedTests } from './AutomatedTests';
+import { SecurityTests } from './SecurityTests';
+import { CiCdView } from './CiCdView';
+import { AdminView } from './AdminView';
 import { SecurityInspectorModal } from './SecurityInspectorModal';
 import { handleFirestoreError, OperationType } from '../firebase/firestoreErrors';
 
-type DashboardTab = 'studio' | 'editor' | 'history';
+type DashboardTab =
+  | 'studio'
+  | 'editor'
+  | 'history'
+  | 'analytics'
+  | 'map'
+  | 'tests'
+  | 'security'
+  | 'cicd'
+  | 'admin';
 
 export const DashboardView: React.FC = () => {
   const { user } = useAuth();
