@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "A user personal reflection journal entry with conversation history and Gemini synthesis",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the journal entry"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner user UID from Firebase Auth"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the journal reflection",
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the reflection",
+          "maxLength": 50
+        },
+        "mood": {
+          "type": "string",
+          "description": "Emotional mindset / mood",
+          "maxLength": 50
+        },
+        "tags": {
+          "type": "array",
+          "description": "List of thematic tags"
+        },
+        "turns": {
+          "type": "array",
+          "description": "Multi-turn reflection conversation turns between user and Gemini"
+        },
+        "summary": {
+          "type": "object",
+          "description": "Structured AI summary and growth insights"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of creation"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "ISO timestamp of last update"
+        },
+        "isPinned": {
+          "type": "boolean",
+          "description": "Whether entry is pinned to top of history"
+        },
+        "wordCount": {
+          "type": "number",
+          "description": "Total user word count"
+        }
+      },
+      "required": ["id", "userId", "title", "category", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/entries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "User isolated personal journal reflections"
+    }
+  }
+}
