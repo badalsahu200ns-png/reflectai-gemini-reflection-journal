@@ -8,7 +8,7 @@ It allows authenticated users to create journal entries and receive AI-powered r
 
 **ReflectAI – Gemini Reflection Journal**
 
-https://ai.studio/apps/63a3194c-c56e-4f29-bd42-92c02a3f09cb
+https://reflection-journal-by-badal-200ns.ai.studio
 
 ## Features
 
