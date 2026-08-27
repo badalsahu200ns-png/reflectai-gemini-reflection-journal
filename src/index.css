@@ -1,1 +1,93 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-brand-primary: #76B900;
+    --color-brand-light: #8FE000;
+    --color-brand-dark: #5E9400;
+
+    --color-heading-h1: #1A1A1A;
+    --color-heading-h2: #333333;
+
+    --color-integration: #2176FF;
+    --color-collaboration: #F4B400;
+    --color-secure-data: #17DBCF;
+    --color-reports: #595959;
+
+    --color-action-primary: #F44336;
+    --color-action-primary-hover: #D32F2F;
+    --color-action-outline: #8BC34A;
+
+    --color-header-brand: #76B900;
+    --color-header-action: #F44336;
+    --color-header-special: #9C27B0;
+
+    --color-ai-special: #9C27B0;
+
+    --color-palette-cyan: #00BCD4;
+    --color-palette-lime: #CDDC39;
+    --color-palette-amber: #FFC107;
+    --color-palette-brown: #795548;
+    --color-palette-dark: #212121;
+  }
+
+  .dark {
+    --color-heading-h1: #F5F5F5;
+    --color-heading-h2: #D4D4D4;
+  }
+}
+
+/* Custom Design-System Helpers */
+.text-heading-1 {
+  color: var(--color-heading-h1);
+}
+
+.text-heading-2 {
+  color: var(--color-heading-h2);
+}
+
+/* Button Classes */
+.btn-primary-action {
+  background-color: #F44336;
+  color: #ffffff;
+  transition: all 0.15s ease-in-out;
+}
+.btn-primary-action:hover {
+  background-color: #D32F2F;
+}
+
+.btn-outline-action {
+  background-color: transparent;
+  border: 1px solid #8BC34A;
+  color: #8BC34A;
+  transition: all 0.15s ease-in-out;
+}
+.btn-outline-action:hover {
+  background-color: rgba(139, 195, 74, 0.12);
+}
+
+.btn-brand-action {
+  background-color: #76B900;
+  color: #000000;
+  font-weight: 700;
+  transition: all 0.15s ease-in-out;
+}
+.btn-brand-action:hover {
+  background-color: #8FE000;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #595959;
+}

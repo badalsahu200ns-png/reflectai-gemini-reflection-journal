@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Bell,
   Mail,
@@ -12,22 +12,29 @@ import {
   CheckCircle2,
   Flame,
   Clock,
-  Sparkles
+  Sparkles,
+  Sliders,
+  ShieldCheck
 } from 'lucide-react';
 import { NotificationSettings } from '../types';
 import { logAuditEvent } from '../utils/auditLogger';
 import { useAuth } from '../context/AuthContext';
+import { ExternalIntegrationsView } from './ExternalIntegrationsView';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: 'integrations' | 'reminders';
 }
 
 export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps> = ({
   isOpen,
-  onClose
+  onClose,
+  defaultTab = 'integrations'
 }) => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'integrations' | 'reminders'>(defaultTab);
+
   const [settings, setSettings] = useState<NotificationSettings>(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -39,7 +46,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
       dailyReminderEnabled: true,
       dailyReminderTime: '20:00',
       weeklyDigestEmailEnabled: true,
-      digestEmail: user?.email || 'user@example.com',
+      digestEmail: user?.email || '',
       slackWebhookUrl: '',
       slackEnabled: false,
       discordWebhookUrl: '',
@@ -49,153 +56,39 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
     };
   });
 
-  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
-  const [isSendingSlackTest, setIsSendingSlackTest] = useState(false);
-  const [isSendingDiscordTest, setIsSendingDiscordTest] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSave = () => {
+  const handleSaveReminders = () => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
         window.localStorage.setItem('reflectai_notification_settings', JSON.stringify(settings));
       }
     } catch {}
-    setStatusMessage({ type: 'success', text: 'Notification preferences saved successfully!' });
+    setStatusMessage({ type: 'success', text: 'Daily reflection reminder preferences saved!' });
     setTimeout(() => {
       onClose();
-    }, 800);
-  };
-
-  const handleSendTestEmail = async () => {
-    if (!settings.digestEmail) {
-      setStatusMessage({ type: 'error', text: 'Please enter a valid email address.' });
-      return;
-    }
-
-    setIsSendingTestEmail(true);
-    setStatusMessage(null);
-
-    try {
-      const res = await fetch('/api/notifications/test-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: settings.digestEmail,
-          type: 'WEEKLY_DIGEST',
-          data: { entryCount: 7, sentimentScore: 88 }
-        })
-      });
-
-      if (!res.ok) throw new Error('Email dispatch failed');
-      const data = await res.json();
-      setStatusMessage({ type: 'success', text: `Test email digest sent to ${settings.digestEmail}!` });
-
-      await logAuditEvent({
-        userId: user?.uid || 'anon',
-        userEmail: user?.email,
-        action: 'EMAIL_NOTIFICATION_DISPATCHED',
-        category: 'NOTIFICATION',
-        resource: `Mailer::${settings.digestEmail}`,
-        status: 'SUCCESS',
-        details: 'Simulated daily/weekly digest verified.'
-      });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Failed to dispatch email.' });
-    } finally {
-      setIsSendingTestEmail(false);
-    }
-  };
-
-  const handleSendSlackTest = async () => {
-    if (!settings.slackWebhookUrl) {
-      setStatusMessage({ type: 'error', text: 'Please provide a Slack Webhook URL.' });
-      return;
-    }
-
-    setIsSendingSlackTest(true);
-    setStatusMessage(null);
-
-    try {
-      const res = await fetch('/api/notifications/dispatch-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webhookUrl: settings.slackWebhookUrl,
-          service: 'slack',
-          eventType: 'Streak Milestone Unlocked 🔥',
-          payload: {
-            userName: user?.displayName || 'Mindful User',
-            streak: 7,
-            mood: 'Grateful',
-            summary: 'User achieved the 7-Day Mindfulness Philosopher badge!'
-          }
-        })
-      });
-
-      if (!res.ok) throw new Error('Slack dispatch failed');
-      setStatusMessage({ type: 'success', text: 'Slack milestone alert dispatched successfully!' });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Slack dispatch failed.' });
-    } finally {
-      setIsSendingSlackTest(false);
-    }
-  };
-
-  const handleSendDiscordTest = async () => {
-    if (!settings.discordWebhookUrl) {
-      setStatusMessage({ type: 'error', text: 'Please provide a Discord Webhook URL.' });
-      return;
-    }
-
-    setIsSendingDiscordTest(true);
-    setStatusMessage(null);
-
-    try {
-      const res = await fetch('/api/notifications/dispatch-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          webhookUrl: settings.discordWebhookUrl,
-          service: 'discord',
-          eventType: 'Weekly AI Summary Generated ✨',
-          payload: {
-            userName: user?.displayName || 'Mindful User',
-            streak: 7,
-            mood: 'Thoughtful',
-            category: 'Weekly Synthesis',
-            summary: 'Your weekly mindfulness synthesis is ready in the ReflectAI dashboard.'
-          }
-        })
-      });
-
-      if (!res.ok) throw new Error('Discord dispatch failed');
-      setStatusMessage({ type: 'success', text: 'Discord test card sent successfully!' });
-    } catch (err: any) {
-      setStatusMessage({ type: 'error', text: err?.message || 'Discord dispatch failed.' });
-    } finally {
-      setIsSendingDiscordTest(false);
-    }
+    }, 900);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
+        initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="w-full max-w-xl rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl p-6 text-white space-y-5 max-h-[90vh] overflow-y-auto"
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="w-full max-w-3xl rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl p-5 sm:p-6 text-white space-y-5 max-h-[92vh] overflow-y-auto"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-neutral-800 pb-4">
+        {/* Top Header */}
+        <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-950/80 border border-indigo-800/60 flex items-center justify-center text-indigo-400">
+            <div className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-800/60 flex items-center justify-center text-emerald-400">
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-white">Notifications & Webhook Integrations</h3>
-              <p className="text-xs text-neutral-400">Configure email reminders, Slack channels & Discord webhooks</p>
+              <h2 className="text-sm font-semibold text-white">Notifications & Integrations</h2>
+              <p className="text-xs text-neutral-400">Manage external webhooks (Slack, Discord), email digests & in-app alerts</p>
             </div>
           </div>
           <button
@@ -206,152 +99,117 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
           </button>
         </div>
 
-        {statusMessage && (
-          <div
-            className={`p-3 rounded-xl border flex items-center gap-2 text-xs ${
-              statusMessage.type === 'success'
-                ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
-                : 'bg-red-950/40 border-red-800/50 text-red-300'
+        {/* Tab Selector */}
+        <div className="flex items-center gap-2 p-1 rounded-xl bg-neutral-950 border border-neutral-800 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setActiveTab('integrations')}
+            className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all ${
+              activeTab === 'integrations'
+                ? 'bg-neutral-800 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
             }`}
           >
-            {statusMessage.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
-            )}
-            <span>{statusMessage.text}</span>
-          </div>
-        )}
+            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+            <span>External Integrations (Slack, Discord, Email)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('reminders')}
+            className={`flex-1 py-2 px-3 rounded-lg flex items-center justify-center gap-2 transition-all ${
+              activeTab === 'reminders'
+                ? 'bg-neutral-800 text-white shadow-xs'
+                : 'text-neutral-400 hover:text-neutral-200'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Daily Reminders & In-App Pacing</span>
+          </button>
+        </div>
 
-        {/* Email Reminders Section */}
-        <div className="space-y-3 bg-neutral-950/60 p-4 rounded-xl border border-neutral-800/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-white">
-              <Mail className="w-4 h-4 text-purple-400" />
-              <span>Email Digest & Reflection Reminders</span>
-            </div>
-            <button
-              onClick={handleSendTestEmail}
-              disabled={isSendingTestEmail}
-              className="text-[11px] text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1"
-            >
-              {isSendingTestEmail ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              <span>Send Test Email</span>
-            </button>
-          </div>
-
-          <div className="space-y-2 text-xs">
-            <div>
-              <label className="block text-neutral-400 mb-1">Recipient Email</label>
-              <input
-                type="email"
-                value={settings.digestEmail}
-                onChange={(e) => setSettings({ ...settings, digestEmail: e.target.value })}
-                placeholder="you@example.com"
-                className="w-full px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-purple-500 text-xs"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-neutral-300">Daily Reflection Reminder</span>
-              <input
-                type="checkbox"
-                checked={settings.dailyReminderEnabled}
-                onChange={(e) => setSettings({ ...settings, dailyReminderEnabled: e.target.checked })}
-                className="rounded accent-purple-600"
-              />
-            </div>
-
-            {settings.dailyReminderEnabled && (
-              <div className="flex items-center justify-between pl-4 text-neutral-400">
-                <span>Reminder Time</span>
-                <input
-                  type="time"
-                  value={settings.dailyReminderTime}
-                  onChange={(e) => setSettings({ ...settings, dailyReminderTime: e.target.value })}
-                  className="px-2 py-1 rounded bg-neutral-900 border border-neutral-800 text-xs text-white"
-                />
+        {/* Tab Content */}
+        {activeTab === 'integrations' ? (
+          <ExternalIntegrationsView isModal={true} onClose={onClose} />
+        ) : (
+          <div className="space-y-4 text-xs">
+            {statusMessage && (
+              <div
+                className={`p-3 rounded-xl border flex items-center gap-2 ${
+                  statusMessage.type === 'success'
+                    ? 'bg-emerald-950/40 border-emerald-800/50 text-emerald-300'
+                    : 'bg-red-950/40 border-red-800/50 text-red-300'
+                }`}
+              >
+                {statusMessage.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                )}
+                <span>{statusMessage.text}</span>
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Slack Webhook Section */}
-        <div className="space-y-3 bg-neutral-950/60 p-4 rounded-xl border border-neutral-800/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-white">
-              <MessageSquare className="w-4 h-4 text-emerald-400" />
-              <span>Slack Incoming Webhook</span>
+            <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-white">Daily Reflection In-App Reminder</h4>
+                  <p className="text-neutral-400 text-[11px]">Prompt yourself at your preferred reflection time.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.dailyReminderEnabled}
+                  onChange={(e) => setSettings({ ...settings, dailyReminderEnabled: e.target.checked })}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </div>
+
+              {settings.dailyReminderEnabled && (
+                <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
+                  <span className="text-neutral-300">Preferred Evening Time</span>
+                  <input
+                    type="time"
+                    value={settings.dailyReminderTime}
+                    onChange={(e) => setSettings({ ...settings, dailyReminderTime: e.target.value })}
+                    className="px-2.5 py-1 rounded-lg bg-neutral-900 border border-neutral-800 text-white font-mono text-xs"
+                  />
+                </div>
+              )}
             </div>
-            <button
-              onClick={handleSendSlackTest}
-              disabled={isSendingSlackTest}
-              className="text-[11px] text-emerald-400 hover:text-emerald-300 font-medium flex items-center gap-1"
-            >
-              {isSendingSlackTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              <span>Test Slack Alert</span>
-            </button>
-          </div>
 
-          <div>
-            <label className="block text-neutral-400 text-xs mb-1">Slack Webhook URL</label>
-            <input
-              type="url"
-              value={settings.slackWebhookUrl}
-              onChange={(e) => setSettings({ ...settings, slackWebhookUrl: e.target.value })}
-              placeholder="https://hooks.slack.com/services/..."
-              className="w-full px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500 text-xs font-mono"
-            />
-          </div>
-        </div>
-
-        {/* Discord Webhook Section */}
-        <div className="space-y-3 bg-neutral-950/60 p-4 rounded-xl border border-neutral-800/80">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xs font-semibold text-white">
-              <MessageSquare className="w-4 h-4 text-indigo-400" />
-              <span>Discord Incoming Webhook</span>
+            <div className="p-4 rounded-xl bg-neutral-950 border border-neutral-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-white">Milestone & Streak Celebrations</h4>
+                  <p className="text-neutral-400 text-[11px]">Show congratulations on 3, 7, 14, 30 day milestones.</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.notifyOnStreakMilestone}
+                  onChange={(e) => setSettings({ ...settings, notifyOnStreakMilestone: e.target.checked })}
+                  className="rounded accent-emerald-600 w-4 h-4"
+                />
+              </div>
             </div>
-            <button
-              onClick={handleSendDiscordTest}
-              disabled={isSendingDiscordTest}
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
-            >
-              {isSendingDiscordTest ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
-              <span>Test Discord Card</span>
-            </button>
-          </div>
 
-          <div>
-            <label className="block text-neutral-400 text-xs mb-1">Discord Webhook URL</label>
-            <input
-              type="url"
-              value={settings.discordWebhookUrl}
-              onChange={(e) => setSettings({ ...settings, discordWebhookUrl: e.target.value })}
-              placeholder="https://discord.com/api/webhooks/..."
-              className="w-full px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 text-xs font-mono"
-            />
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 font-medium"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveReminders}
+                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1.5 transition-all shadow"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Save Reminder Settings</span>
+              </button>
+            </div>
           </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-2 border-t border-neutral-800 pt-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all shadow"
-          >
-            <Check className="w-3.5 h-3.5" />
-            Save Preferences
-          </button>
-        </div>
+        )}
       </motion.div>
     </div>
   );

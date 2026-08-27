@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   Key,
   Palette,
-  Bell
+  Bell,
+  ChevronDown
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { ThemeSelectorModal } from './ThemeSelectorModal';
@@ -83,70 +84,103 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenSecurityInspector, entries
 
           {/* User Profile / Menu */}
           {user && (
-            <div className="relative">
+            <div className="relative flex items-center gap-2">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-neutral-900 border border-neutral-800/80 transition-all text-left"
+                className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-neutral-900 border border-neutral-800/80 hover:border-purple-500/40 transition-all text-left group"
                 id="btn-user-avatar"
+                title="Click profile to open account menu & sign out"
+                aria-label="User profile menu"
               >
-                <img
-                  src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
-                  alt={user.displayName || 'User'}
-                  className="w-7 h-7 rounded-full bg-neutral-800 object-cover border border-neutral-700"
-                  referrerPolicy="no-referrer"
-                />
+                <div className="relative">
+                  <img
+                    src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
+                    alt={user.displayName || 'User'}
+                    className="w-7 h-7 rounded-full bg-neutral-800 object-cover border border-neutral-700 ring-2 ring-purple-500/20 group-hover:ring-purple-500/50 transition-all"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      // Fallback image if dicebear/photoURL fails
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 absolute -bottom-0.5 -right-0.5 ring-2 ring-neutral-950" />
+                </div>
                 <div className="hidden lg:block text-left pr-1">
                   <div className="text-xs font-semibold text-white leading-tight truncate max-w-[120px]">
                     {user.displayName || 'Reflective User'}
                   </div>
                   <div className="text-[10px] text-neutral-400 truncate max-w-[120px]">
-                    {user.email || 'Isolated Session'}
+                    {user.email || 'Google Account'}
                   </div>
                 </div>
+                <ChevronDown className={`w-3.5 h-3.5 text-neutral-400 group-hover:text-white transition-transform duration-200 ${showUserMenu ? 'rotate-180 text-purple-400' : ''}`} />
+              </button>
+
+              {/* Direct Quick Sign Out Button */}
+              <button
+                onClick={() => signOut()}
+                className="hidden sm:inline-flex p-2 rounded-lg bg-neutral-900 hover:bg-red-950/60 text-neutral-400 hover:text-red-400 border border-neutral-800 transition-colors"
+                title="Quick Log Out"
+                id="btn-nav-quick-signout"
+                aria-label="Log Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
               </button>
 
               {/* Dropdown Menu */}
               {showUserMenu && (
                 <>
                   <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
                     onClick={() => setShowUserMenu(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl bg-neutral-900 border border-neutral-800 shadow-2xl p-3 z-50 space-y-3">
-                    <div className="border-b border-neutral-800 pb-2">
-                      <div className="text-xs font-semibold text-white">
-                        {user.displayName || 'Active Account'}
-                      </div>
-                      <div className="text-[11px] text-neutral-400 font-mono truncate">
-                        {user.email || 'No email attached'}
-                      </div>
-                      <div className="mt-1 text-[10px] text-neutral-500 font-mono">
-                        UID: <span className="text-neutral-400">{user.uid.slice(0, 16)}...</span>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] text-neutral-400 space-y-1">
-                      <div className="flex justify-between">
-                        <span>Total Entries:</span>
-                        <span className="text-white font-semibold">{entriesCount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Storage Path:</span>
-                        <span className="text-neutral-300 font-mono text-[10px]">/users/{user.uid.slice(0, 6)}...</span>
+                  <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-neutral-900 border border-neutral-800 shadow-2xl p-4 z-50 space-y-3.5 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center gap-3 pb-3 border-b border-neutral-800">
+                      <img
+                        src={user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.uid}`}
+                        alt={user.displayName || 'User'}
+                        className="w-10 h-10 rounded-full bg-neutral-800 object-cover border border-neutral-700 ring-2 ring-purple-500/40"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white truncate">
+                          {user.displayName || 'Active Account'}
+                        </div>
+                        <div className="text-[11px] text-neutral-400 truncate">
+                          {user.email || 'Google Account Connected'}
+                        </div>
+                        <span className="inline-block text-[9px] font-mono uppercase bg-emerald-950/80 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-800/60 mt-1">
+                          Protected Session
+                        </span>
                       </div>
                     </div>
 
-                    <div className="border-t border-neutral-800 pt-2">
+                    <div className="space-y-1.5 text-[11px] text-neutral-400 bg-neutral-950/60 p-2.5 rounded-xl border border-neutral-800/60">
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-500">Total Reflections:</span>
+                        <span className="text-white font-mono font-semibold">{entriesCount}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-500">Cloud Firestore:</span>
+                        <span className="text-purple-300 font-mono text-[10px]">Owner-Isolated</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-neutral-500">UID:</span>
+                        <span className="text-neutral-400 font-mono text-[10px]">{user.uid.slice(0, 10)}...</span>
+                      </div>
+                    </div>
+
+                    <div className="pt-1">
                       <button
                         onClick={() => {
                           setShowUserMenu(false);
                           signOut();
                         }}
-                        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 text-xs font-medium border border-red-900/50 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-200 hover:text-white text-xs font-semibold border border-red-800/60 hover:border-red-700 transition-all shadow-sm active:scale-[0.99]"
                         id="btn-dropdown-signout"
                       >
-                        <LogOut className="w-3.5 h-3.5" />
-                        Sign Out
+                        <LogOut className="w-4 h-4 text-red-400" />
+                        <span>Log Out / Sign Out</span>
                       </button>
                     </div>
                   </div>

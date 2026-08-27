@@ -6,17 +6,44 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 2. Owner-bound personal weekly summaries and analytics
+    // 2. Owner-bound personal AI memories & extracted knowledge
+    match /users/{userId}/memories/{memoryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 3. Owner-bound personal weekly summaries and analytics
     match /users/{userId}/weeklySummaries/{summaryId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 3. Owner-bound notification & theme settings
-    match /users/{userId}/settings/{settingId} {
+    // 4. Owner-bound personal monthly summaries
+    match /users/{userId}/monthlySummaries/{summaryId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // 4. Owner-bound personal interactions and chat history
+    // 5. Owner-bound notification & theme settings & preferences & integrations
+    match /users/{userId}/settings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/preferences/{prefId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/integrations/{integrationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/notificationLogs/{logId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 6. Owner-bound cached insights
+    match /users/{userId}/insights/{insightId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 7. Owner-bound personal interactions and chat history
     match /users/{userId}/interactions/{interactionId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

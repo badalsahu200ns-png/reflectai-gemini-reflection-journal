@@ -11,10 +11,6 @@ import {
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  MessageSquareQuote,
-  FileEdit,
-  History,
-  ShieldCheck,
   Sparkles,
   Plus,
   Lock,
@@ -23,49 +19,108 @@ import {
   RefreshCw,
   AlertCircle,
   BarChart3,
-  Globe,
-  Terminal,
-  ShieldAlert,
-  GitBranch,
-  Flame
+  Calendar,
+  Shield,
+  Bell,
+  Star
 } from 'lucide-react';
 import { db } from '../firebase/config';
 import { useAuth } from '../context/AuthContext';
-import { JournalEntry } from '../types';
-import { Navbar } from './Navbar';
-import { JournalHistorySidebar } from './JournalHistorySidebar';
-import { JournalWorkspace } from './JournalWorkspace';
+import { useTheme } from '../context/ThemeContext';
+import { JournalEntry, AIMemory, AppNotification } from '../types';
+import { Sidebar } from './Sidebar';
+import { HomeView } from './HomeView';
 import { JournalEditor } from './JournalEditor';
-import { HistoryView } from './HistoryView';
+import { JournalWorkspace } from './JournalWorkspace';
+import { AskMyJournalView } from './AskMyJournalView';
+import { MemoriesView } from './MemoriesView';
 import { AnalyticsView } from './AnalyticsView';
-import { WorldReflectionMap } from './WorldReflectionMap';
-import { AutomatedTests } from './AutomatedTests';
-import { SecurityTests } from './SecurityTests';
-import { CiCdView } from './CiCdView';
+import { MonthlySummaryView } from './MonthlySummaryView';
+import { FavoritesView } from './FavoritesView';
+import { PrivacyCenterView } from './PrivacyCenterView';
+import { SettingsView } from './SettingsView';
 import { AdminView } from './AdminView';
+import { DailyReminderModal } from './DailyReminderModal';
 import { SecurityInspectorModal } from './SecurityInspectorModal';
+import { NotificationCenterModal } from './NotificationCenterModal';
 import { handleFirestoreError, OperationType } from '../firebase/firestoreErrors';
 
-type DashboardTab =
-  | 'studio'
-  | 'editor'
-  | 'history'
-  | 'analytics'
-  | 'map'
-  | 'tests'
-  | 'security'
-  | 'cicd'
-  | 'admin';
+export type DashboardTab =
+  | 'home'
+  | 'journal'
+  | 'ask'
+  | 'insights'
+  | 'memories'
+  | 'favorites'
+  | 'privacy'
+  | 'admin'
+  | 'settings';
 
 export const DashboardView: React.FC = () => {
   const { user } = useAuth();
+  const { isDark } = useTheme();
+
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [memories, setMemories] = useState<AIMemory[]>([]);
   const [activeEntryId, setActiveEntryId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<DashboardTab>('studio');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('home');
+  const [journalViewMode, setJournalViewMode] = useState<'editor' | 'conversation'>('editor');
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [isAiGeneratingGlobal, setIsAiGeneratingGlobal] = useState(false);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+
+  // App Notifications state
+  const [notifications, setNotifications] = useState<AppNotification[]>([
+    {
+      id: 'notif-1',
+      title: 'Mindful Evening Reflection',
+      message: 'Take 2 minutes to record your key decisions and energy level today.',
+      type: 'REMINDER',
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+      isRead: false,
+      actionTab: 'journal'
+    },
+    {
+      id: 'notif-2',
+      title: 'Weekly Pattern Synthesis Available',
+      message: 'Gemini identified a shift toward focus and calm over the past 7 days.',
+      type: 'WEEKLY_SUMMARY',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      isRead: false,
+      actionTab: 'insights'
+    },
+    {
+      id: 'notif-3',
+      title: 'Streak Milestones Maintained',
+      message: 'You are continuing your daily mindful journaling pace.',
+      type: 'STREAK',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
+      isRead: true
+    }
+  ]);
+
+  // Gamification & Streak state
+  const [streakDays, setStreakDays] = useState<number>(() => {
+    try {
+      if (typeof window !== 'undefined' && user?.uid) {
+        const saved = localStorage.getItem(`reflectai_streak_${user.uid}`);
+        if (saved) return parseInt(saved, 10) || 1;
+      }
+    } catch {}
+    return 1;
+  });
+
+  const [isGamificationEnabled, setIsGamificationEnabled] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined' && user?.uid) {
+        const saved = localStorage.getItem(`reflectai_gamification_enabled_${user.uid}`);
+        if (saved !== null) return saved === 'true';
+      }
+    } catch {}
+    return true;
+  });
 
   // Synchronize entries in real-time from Cloud Firestore
   useEffect(() => {
@@ -80,7 +135,7 @@ export const DashboardView: React.FC = () => {
 
     try {
       const entriesRef = collection(db, 'users', user.uid, 'entries');
-      const q = query(entriesRef, orderBy('updatedAt', 'desc'));
+      const q = query(entriesRef, orderBy('createdAt', 'desc'));
 
       const unsubscribe = onSnapshot(
         q,
@@ -92,20 +147,39 @@ export const DashboardView: React.FC = () => {
               id: docSnap.id,
               userId: user.uid,
               title: data.title || 'Untitled Reflection',
+              content: data.content || '',
               category: data.category || 'Daily Reflection',
               mood: data.mood,
+              moodScale: data.moodScale || 7,
+              emotions: data.emotions || [],
               tags: data.tags || [],
               turns: data.turns || [],
               summary: data.summary || null,
+              ragReflection: data.ragReflection || null,
+              personaUsed: data.personaUsed || 'balanced',
+              inputMethod: data.inputMethod || 'text',
+              location: data.location || null,
+              attachments: data.attachments || [],
               createdAt: data.createdAt || new Date().toISOString(),
               updatedAt: data.updatedAt || new Date().toISOString(),
               isPinned: Boolean(data.isPinned),
+              favorite: Boolean(data.favorite || data.isPinned),
               wordCount: data.wordCount || 0
             });
           });
 
           setEntries(fetched);
           setLoading(false);
+
+          // Calculate streak
+          if (fetched.length > 0) {
+            const daysSet = new Set(
+              fetched.map((e) => new Date(e.createdAt).toISOString().split('T')[0])
+            );
+            const calculatedStreak = Math.max(1, daysSet.size);
+            setStreakDays(calculatedStreak);
+            localStorage.setItem(`reflectai_streak_${user.uid}`, String(calculatedStreak));
+          }
 
           // If no active entry selected and entries exist, select the most recent one
           setActiveEntryId((curr) => {
@@ -116,20 +190,16 @@ export const DashboardView: React.FC = () => {
         (error) => {
           console.warn('Firestore real-time listener fallback:', error);
           setLoading(false);
-          try {
-            handleFirestoreError(error, OperationType.LIST, path);
-          } catch (e) {
-            // Local storage backup for offline/demo resilience
-            const localSaved = localStorage.getItem(`reflectai_entries_${user.uid}`);
-            if (localSaved) {
-              try {
-                const parsed = JSON.parse(localSaved);
-                setEntries(parsed);
-                if (parsed.length > 0 && !activeEntryId) {
-                  setActiveEntryId(parsed[0].id);
-                }
-              } catch {}
-            }
+          // Local storage backup for offline resilience
+          const localSaved = localStorage.getItem(`reflectai_entries_${user.uid}`);
+          if (localSaved) {
+            try {
+              const parsed = JSON.parse(localSaved);
+              setEntries(parsed);
+              if (parsed.length > 0 && !activeEntryId) {
+                setActiveEntryId(parsed[0].id);
+              }
+            } catch {}
           }
         }
       );
@@ -142,29 +212,110 @@ export const DashboardView: React.FC = () => {
     }
   }, [user?.uid]);
 
+  // Synchronize AI Long-Term Memories in real-time from Cloud Firestore
+  useEffect(() => {
+    if (!user?.uid) {
+      setMemories([]);
+      return;
+    }
+
+    try {
+      const memsRef = collection(db, 'users', user.uid, 'memories');
+      const unsubscribe = onSnapshot(
+        memsRef,
+        (snapshot) => {
+          const fetched: AIMemory[] = [];
+          snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            fetched.push({
+              id: docSnap.id,
+              userId: user.uid,
+              text: data.text || data.memoryText || '',
+              category: data.category || 'Mindset',
+              sourceEntryId: data.sourceEntryId,
+              isActive: data.isActive !== false,
+              createdAt: data.createdAt || new Date().toISOString()
+            });
+          });
+          setMemories(fetched);
+        },
+        (err) => {
+          console.warn('Memories listener warning:', err);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn('Failed to load memories:', e);
+    }
+  }, [user?.uid]);
+
+  // Save manual memory item
+  const handleSaveMemory = async (memoryText: string, cat: string) => {
+    if (!user?.uid || !memoryText.trim()) return;
+    const memId = 'mem-' + Date.now();
+    const newMem: AIMemory = {
+      id: memId,
+      userId: user.uid,
+      text: memoryText.trim(),
+      category: cat as any,
+      isActive: true,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const docRef = doc(db, 'users', user.uid, 'memories', memId);
+      await setDoc(docRef, {
+        ...newMem,
+        firestoreCreatedAt: serverTimestamp()
+      });
+    } catch (e) {
+      console.error('Error saving memory:', e);
+    }
+  };
+
   // Create a brand new journal entry
-  const handleCreateNewEntry = async () => {
+  const handleCreateNewEntry = async (initialContent?: string) => {
     if (!user) return;
 
     const newId = 'entry-' + Date.now();
     const newEntry: JournalEntry = {
       id: newId,
       userId: user.uid,
-      title: 'Untitled Reflection',
+      title: '',
+      content: initialContent || '',
       category: 'Daily Reflection',
       mood: 'Thoughtful',
+      moodScale: 7,
+      emotions: ['Peaceful'],
       tags: ['Reflection'],
-      turns: [],
+      turns: initialContent
+        ? [
+            {
+              id: 'turn-' + Date.now(),
+              role: 'user',
+              content: initialContent,
+              timestamp: new Date().toISOString(),
+              actionType: 'reflection'
+            }
+          ]
+        : [],
       summary: null,
+      ragReflection: null,
+      personaUsed: 'balanced',
+      inputMethod: 'text',
+      location: null,
+      attachments: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       isPinned: false,
-      wordCount: 0
+      favorite: false,
+      wordCount: initialContent ? initialContent.split(/\s+/).filter(Boolean).length : 0
     };
 
     setEntries((prev) => [newEntry, ...prev]);
     setActiveEntryId(newId);
-    setActiveTab('studio');
+    setActiveTab('journal');
 
     try {
       setIsSaving(true);
@@ -178,51 +329,29 @@ export const DashboardView: React.FC = () => {
       localStorage.setItem(`reflectai_entries_${user.uid}`, JSON.stringify(updatedList));
     } catch (err: unknown) {
       console.error('Failed to create entry in Firestore:', err);
-      handleFirestoreError(err, OperationType.CREATE, `users/${user.uid}/entries/${newId}`);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Update existing entry
-  const handleUpdateEntry = async (updatedFields: Partial<JournalEntry>) => {
-    if (!user || !activeEntryId) return;
+  // Toggle favorite / pin
+  const handleToggleFavorite = async (entryId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
 
-    setIsSaving(true);
-    const now = new Date().toISOString();
-    const currentEntry = entries.find((e) => e.id === activeEntryId);
-    if (!currentEntry) return;
+    const target = entries.find((item) => item.id === entryId);
+    if (!target) return;
 
-    const mergedEntry: JournalEntry = {
-      ...currentEntry,
-      ...updatedFields,
-      updatedAt: now
-    };
+    const newFav = !target.favorite && !target.isPinned;
+    const updated = { ...target, favorite: newFav, isPinned: newFav };
 
-    setEntries((prev) =>
-      prev.map((e) => (e.id === activeEntryId ? mergedEntry : e))
-    );
+    setEntries((prev) => prev.map((item) => (item.id === entryId ? updated : item)));
 
     try {
-      const entryDocRef = doc(db, 'users', user.uid, 'entries', activeEntryId);
-      await setDoc(
-        entryDocRef,
-        {
-          ...mergedEntry,
-          firestoreUpdatedAt: serverTimestamp()
-        },
-        { merge: true }
-      );
-
-      const updatedList = entries.map((e) =>
-        e.id === activeEntryId ? mergedEntry : e
-      );
-      localStorage.setItem(`reflectai_entries_${user.uid}`, JSON.stringify(updatedList));
+      const entryDocRef = doc(db, 'users', user.uid, 'entries', entryId);
+      await setDoc(entryDocRef, { favorite: newFav, isPinned: newFav }, { merge: true });
     } catch (err: unknown) {
-      console.error('Failed to update entry in Firestore:', err);
-      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/entries/${activeEntryId}`);
-    } finally {
-      setIsSaving(false);
+      console.error('Failed to toggle favorite in Firestore:', err);
     }
   };
 
@@ -240,228 +369,364 @@ export const DashboardView: React.FC = () => {
     try {
       const entryDocRef = doc(db, 'users', user.uid, 'entries', entryId);
       await deleteDoc(entryDocRef);
-
-      const remaining = entries.filter((e) => e.id !== entryId);
-      localStorage.setItem(`reflectai_entries_${user.uid}`, JSON.stringify(remaining));
     } catch (err: unknown) {
       console.error('Failed to delete entry in Firestore:', err);
-      handleFirestoreError(err, OperationType.DELETE, `users/${user.uid}/entries/${entryId}`);
     }
   };
 
-  // Toggle Pin
-  const handleTogglePin = async (entryId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!user) return;
+  // Notification handlers
+  const handleMarkNotifAsRead = (notifId: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notifId ? { ...n, isRead: true } : n))
+    );
+  };
 
-    const target = entries.find((item) => item.id === entryId);
-    if (!target) return;
+  const handleMarkAllNotifsAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
 
-    const newPinned = !target.isPinned;
-    const updated = { ...target, isPinned: newPinned };
-
-    setEntries((prev) => prev.map((item) => (item.id === entryId ? updated : item)));
-
-    try {
-      const entryDocRef = doc(db, 'users', user.uid, 'entries', entryId);
-      await setDoc(entryDocRef, { isPinned: newPinned }, { merge: true });
-    } catch (err: unknown) {
-      console.error('Failed to toggle pin:', err);
-      handleFirestoreError(err, OperationType.UPDATE, `users/${user.uid}/entries/${entryId}`);
-    }
+  const handleClearNotifs = () => {
+    setNotifications([]);
   };
 
   const activeEntry = entries.find((e) => e.id === activeEntryId);
+  const favoritesCount = entries.filter((e) => e.favorite || e.isPinned).length;
+  const unreadNotifsCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-neutral-100 flex flex-col font-sans" id="dashboard-view-root">
-      {/* Top Navbar */}
-      <Navbar
-        onOpenSecurityInspector={() => setIsInspectorOpen(true)}
+    <div
+      className="min-h-screen flex flex-col md:flex-row transition-colors bg-[#0B0D0E] text-white font-sans selection:bg-[#76B900]/20 selection:text-[#8FE000]"
+      id="reflectai-dashboard-root"
+    >
+      {/* 1. Global Left Navigation Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        onSelectTab={(tab) => setActiveTab(tab)}
+        onNewReflection={() => handleCreateNewEntry()}
+        onOpenNotifications={() => setIsNotificationCenterOpen(true)}
+        unreadNotificationsCount={unreadNotifsCount}
         entriesCount={entries.length}
+        memoriesCount={memories.length}
+        favoritesCount={favoritesCount}
+        streakDays={streakDays}
+        gamificationEnabled={isGamificationEnabled}
       />
 
-      {/* Navigation Subheader / Mode Switcher */}
-      <div className="h-12 border-b border-neutral-800 bg-neutral-950/80 px-4 sm:px-6 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Multi-Turn Studio Tab */}
-          <button
-            onClick={() => setActiveTab('studio')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'studio'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
-            }`}
-            id="tab-studio"
-          >
-            <MessageSquareQuote className="w-3.5 h-3.5" />
-            <span>Multi-Turn Studio</span>
-          </button>
-
-          {/* Dedicated Journal Editor Tab */}
-          <button
-            onClick={() => setActiveTab('editor')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'editor'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
-            }`}
-            id="tab-editor"
-          >
-            <FileEdit className="w-3.5 h-3.5" />
-            <span>Journal Editor</span>
-          </button>
-
-          {/* History Archives Tab */}
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              activeTab === 'history'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-900'
-            }`}
-            id="tab-history"
-          >
-            <History className="w-3.5 h-3.5" />
-            <span>History Archive</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-neutral-900 border border-neutral-800 text-neutral-400">
-              {entries.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Global Firestore Security Scope indicator */}
-        <div className="hidden sm:flex items-center gap-2 text-xs text-neutral-400">
-          <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-mono">
-            <Lock className="w-3 h-3" />
-            Firestore Path: /users/{user?.uid ? `${user.uid.slice(0, 8)}...` : 'anon'}/entries
-          </span>
-        </div>
-      </div>
-
-      {/* Main Tab Content with Framer Motion transitions */}
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      {/* 2. Main Content Canvas */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen pb-20 md:pb-0 relative bg-[#0B0D0E]">
         <AnimatePresence mode="wait">
-          {/* Tab 1: Multi-Turn Studio Workspace with Left History Sidebar */}
-          {activeTab === 'studio' && (
+          {/* TAB 1: HOME */}
+          {activeTab === 'home' && (
             <motion.div
-              key="studio"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 flex flex-col md:flex-row overflow-hidden h-full"
+              key="home"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1"
             >
-              <JournalHistorySidebar
+              <HomeView
                 entries={entries}
-                activeEntryId={activeEntryId}
-                onSelectEntry={(entry) => setActiveEntryId(entry.id)}
-                onNewEntry={handleCreateNewEntry}
-                onDeleteEntry={handleDeleteEntry}
-                onTogglePin={handleTogglePin}
-                loading={loading}
+                memories={memories}
+                onStartReflection={(quickText) => handleCreateNewEntry(quickText)}
+                onOpenEntry={(entryId) => {
+                  setActiveEntryId(entryId);
+                  setActiveTab('journal');
+                }}
+                onNavigateTab={(tab) => setActiveTab(tab)}
+                onToggleFavorite={handleToggleFavorite}
               />
-
-              {activeEntry ? (
-                <JournalWorkspace
-                  entry={activeEntry}
-                  onUpdateEntry={handleUpdateEntry}
-                  onDeleteEntry={handleDeleteEntry}
-                  isSaving={isSaving}
-                  onAiStateChange={setIsAiGeneratingGlobal}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-neutral-900">
-                  <div className="max-w-md space-y-4">
-                    <div className="w-12 h-12 rounded-2xl bg-purple-950/80 border border-purple-800 flex items-center justify-center mx-auto text-purple-400">
-                      <Sparkles className="w-6 h-6" />
-                    </div>
-                    <h2 className="text-lg font-bold text-white">Your Personal Reflection Studio</h2>
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      Capture thoughts, brainstorm solutions, and converse multi-turn with Gemini 3.6 Flash. All records are isolated in Cloud Firestore.
-                    </p>
-                    <button
-                      onClick={handleCreateNewEntry}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
-                      id="btn-create-first-reflection"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Create Reflection Entry
-                    </button>
-                  </div>
-                </div>
-              )}
             </motion.div>
           )}
 
-          {/* Tab 2: Dedicated Journal Editor Component */}
-          {activeTab === 'editor' && (
+          {/* TAB 2: JOURNAL & REFLECTION STUDIO */}
+          {activeTab === 'journal' && (
             <motion.div
-              key="editor"
-              initial={{ opacity: 0, y: 10 }}
+              key="journal"
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 overflow-y-auto p-4 sm:p-8 bg-neutral-900 h-full"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 flex flex-col h-full"
             >
-              <div className="max-w-4xl mx-auto space-y-6">
-                <JournalEditor
-                  initialEntry={activeEntry}
-                  onSaved={(saved) => {
-                    setEntries((prev) => {
-                      const idx = prev.findIndex((e) => e.id === saved.id);
-                      if (idx >= 0) {
-                        const copy = [...prev];
-                        copy[idx] = saved;
-                        return copy;
-                      }
-                      return [saved, ...prev];
-                    });
-                    setActiveEntryId(saved.id);
-                  }}
-                  onEntryReflected={(reflected) => {
-                    setEntries((prev) => {
-                      const idx = prev.findIndex((e) => e.id === reflected.id);
-                      if (idx >= 0) {
-                        const copy = [...prev];
-                        copy[idx] = reflected;
-                        return copy;
-                      }
-                      return [reflected, ...prev];
-                    });
-                    setActiveEntryId(reflected.id);
-                    setActiveTab('studio');
+              {/* Top Sub-Bar for Journal: Entry Selector & Mode Switch */}
+              <div
+                className="px-4 sm:px-6 py-3 border-b border-[#1F2428] flex items-center justify-between shrink-0 bg-[#0E1012]"
+              >
+                <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
+                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 shrink-0">
+                    Reflection Studio
+                  </span>
+
+                  {/* Mode switcher */}
+                  <div
+                    className="inline-flex p-0.5 rounded-xl border border-[#22272B] bg-[#111416] text-xs font-medium"
+                  >
+                    <button
+                      onClick={() => setJournalViewMode('editor')}
+                      className={`px-3 py-1 rounded-lg transition-colors ${
+                        journalViewMode === 'editor'
+                          ? 'bg-[#76B900] text-black font-bold shadow-xs'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      Studio Editor
+                    </button>
+                    <button
+                      onClick={() => setJournalViewMode('conversation')}
+                      className={`px-3 py-1 rounded-lg transition-colors ${
+                        journalViewMode === 'conversation'
+                          ? 'bg-[#76B900] text-black font-bold shadow-xs'
+                          : 'text-neutral-400 hover:text-white'
+                      }`}
+                    >
+                      Dialogue View
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleCreateNewEntry()}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#76B900] hover:bg-[#8FE000] text-black text-xs font-bold shadow-[0_0_15px_rgba(118,185,0,0.2)] transition-all active:scale-95"
+                  id="btn-journal-new"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>New Entry</span>
+                </button>
+              </div>
+
+              {/* View Switch */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+                {journalViewMode === 'editor' ? (
+                  <div className="max-w-4xl mx-auto">
+                    <JournalEditor
+                      initialEntry={activeEntry}
+                      allEntries={entries}
+                      memories={memories}
+                      onSaveMemory={handleSaveMemory}
+                      onSaved={(saved) => {
+                        setEntries((prev) => {
+                          const idx = prev.findIndex((e) => e.id === saved.id);
+                          if (idx >= 0) {
+                            const copy = [...prev];
+                            copy[idx] = saved;
+                            return copy;
+                          }
+                          return [saved, ...prev];
+                        });
+                        setActiveEntryId(saved.id);
+                      }}
+                      onEntryReflected={(reflected) => {
+                        setEntries((prev) => {
+                          const idx = prev.findIndex((e) => e.id === reflected.id);
+                          if (idx >= 0) {
+                            const copy = [...prev];
+                            copy[idx] = reflected;
+                            return copy;
+                          }
+                          return [reflected, ...prev];
+                        });
+                        setActiveEntryId(reflected.id);
+                      }}
+                    />
+                  </div>
+                ) : activeEntry ? (
+                  <JournalWorkspace
+                    entry={activeEntry}
+                    onUpdateEntry={async (fields) => {
+                      const merged = { ...activeEntry, ...fields, updatedAt: new Date().toISOString() };
+                      setEntries((prev) => prev.map((e) => (e.id === activeEntry.id ? merged : e)));
+                      try {
+                        const docRef = doc(db, 'users', user?.uid || '', 'entries', activeEntry.id);
+                        await setDoc(docRef, merged, { merge: true });
+                      } catch {}
+                    }}
+                    onDeleteEntry={handleDeleteEntry}
+                    isSaving={isSaving}
+                  />
+                ) : (
+                  <div className="text-center py-16">
+                    <p className="text-sm text-neutral-400">Select or create an entry to start.</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 3: ASK MY JOURNAL */}
+          {activeTab === 'ask' && (
+            <motion.div
+              key="ask"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-4xl mx-auto">
+                <AskMyJournalView
+                  entries={entries}
+                  memories={memories}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
                   }}
                 />
               </div>
             </motion.div>
           )}
 
-          {/* Tab 3: Dedicated History View Component */}
-          {activeTab === 'history' && (
+          {/* TAB 4: INSIGHTS (MONTHLY SYNTHESIS & PATTERNS) */}
+          {activeTab === 'insights' && (
             <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 10 }}
+              key="insights"
+              initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              className="flex-1 flex flex-col overflow-hidden h-full"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8 space-y-8"
             >
-              <HistoryView
-                onSelectEntryForEditing={(entry) => {
-                  setActiveEntryId(entry.id);
-                  setActiveTab('studio');
-                }}
-              />
+              <div className="max-w-5xl mx-auto space-y-8">
+                <AnalyticsView
+                  entries={entries}
+                  onOpenEntry={(entry) => {
+                    setActiveEntryId(entry.id);
+                    setActiveTab('journal');
+                  }}
+                />
+                <div className="pt-4 border-t border-[#1F2428]">
+                  <MonthlySummaryView
+                    entries={entries}
+                    onOpenEntry={(entry) => {
+                      setActiveEntryId(entry.id);
+                      setActiveTab('journal');
+                    }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 5: MEMORIES VAULT */}
+          {activeTab === 'memories' && (
+            <motion.div
+              key="memories"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-4xl mx-auto">
+                <MemoriesView />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 6: FAVORITES */}
+          {activeTab === 'favorites' && (
+            <motion.div
+              key="favorites"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-5xl mx-auto">
+                <FavoritesView
+                  entries={entries}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
+                  }}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 7: PRIVACY CENTER */}
+          {activeTab === 'privacy' && (
+            <motion.div
+              key="privacy"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-4xl mx-auto">
+                <PrivacyCenterView
+                  entries={entries}
+                  memories={memories}
+                  onOpenSecurityInspector={() => setIsInspectorOpen(true)}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB 8: ADMIN & RBAC GOVERNANCE */}
+          {activeTab === 'admin' && (
+            <motion.div
+              key="admin"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1"
+            >
+              <AdminView />
+            </motion.div>
+          )}
+
+          {/* TAB 9: SETTINGS */}
+          {activeTab === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-4xl mx-auto">
+                <SettingsView
+                  onOpenPrivacyCenter={() => setActiveTab('privacy')}
+                  onOpenSecurityInspector={() => setIsInspectorOpen(true)}
+                  onOpenReminderModal={() => setIsReminderModalOpen(true)}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
+
+      {/* Daily Reminder Settings Modal */}
+      <DailyReminderModal
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+      />
 
       {/* Security & Rules Inspector Modal */}
       <SecurityInspectorModal
         isOpen={isInspectorOpen}
         onClose={() => setIsInspectorOpen(false)}
+      />
+
+      {/* Notification Center Modal */}
+      <NotificationCenterModal
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={handleMarkNotifAsRead}
+        onMarkAllAsRead={handleMarkAllNotifsAsRead}
+        onClearAll={handleClearNotifs}
+        onNavigateToTab={(tab, entryId) => {
+          setIsNotificationCenterOpen(false);
+          if (tab) setActiveTab(tab as DashboardTab);
+          if (entryId) setActiveEntryId(entryId);
+        }}
       />
     </div>
   );

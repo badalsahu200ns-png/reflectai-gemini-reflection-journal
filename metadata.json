@@ -1,7 +1,7 @@
 {
-  "name": "ReflectAI - Gemini Reflection Journal",
-  "description": "User-authenticated journaling and multi-turn reflection studio powered by Gemini 3.6 Flash and Cloud Firestore with secure user data isolation.",
-  "requestFramePermissions": [],
+  "name": "Reflect AI Personal Gemini Journal",
+  "description": "Secure AI reflection assistant with context-aware prompts, long-term personal memory vault, grounded RAG reflections, Ask My Journal semantic search, voice-to-text, and Firestore owner-bound isolation.",
+  "requestFramePermissions": ["microphone", "geolocation", "camera"],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
