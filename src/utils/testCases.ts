@@ -132,5 +132,55 @@ export const TEST_WALKTHROUGHS: TestCaseItem[] = [
     ],
     expectedResult: 'Complete, copy-pasteable README is produced with all compliance tags, deployment commands, and security configurations.',
     category: 'DEPLOYMENT'
+  },
+  {
+    id: 'TC-THEME-001',
+    module: 'Journal Writing Pad Atmosphere & Theme Engine',
+    testCaseName: 'Interactive Switching across 5 Premium Visual Themes',
+    description: 'Verify that selecting any of the 5 premium themes (Rose Garden, Lavender Dream, Sunset Bloom, Sakura Breeze, Botanical Serenity) updates the writing pad background, text typography, accent badges, mood selectors, and floating petal overlay.',
+    preconditions: 'User is on the Journal Editor page.',
+    testSteps: [
+      'Click the "Atmosphere" button in the Journal Editor header or sidebar.',
+      'In the ThemeSelectorModal, preview all 5 themes: Rose Garden, Lavender Dream, Sunset Bloom, Sakura Breeze, and Botanical Serenity.',
+      'Select "Rose Garden" and observe the warm ivory canvas, blush rose accents, and drifting crimson rose petals.',
+      'Select "Lavender Dream" and observe the soft violet card, amethyst accents, and serene lavender petals.',
+      'Select "Botanical Serenity" and observe the sage green card, emerald accents, and sage leaf particles.',
+      'Switch between Dark Mode and Light Mode and verify color tokens dynamically invert for optimal legibility.'
+    ],
+    expectedResult: 'Writing pad background, outer container, toolbars, buttons, and decorative petal overlays seamlessly transition to the chosen theme without disrupting any editor content or state.',
+    category: 'THEMES' as any
+  },
+  {
+    id: 'TC-RAG-001',
+    module: 'Cognitive Personas & Structured RAG Reflection',
+    testCaseName: 'Generate Grounded 6-Part RAG Reflection with Cognitive Personas',
+    description: 'Verify that writing a journal entry and requesting reflection synthesizes historical journal context using selected cognitive persona (e.g. Socratic Inquirer, Calm Coach, Pattern Finder).',
+    preconditions: 'At least one prior journal entry exists in history.',
+    testSteps: [
+      'Write a journal entry discussing a recurring challenge or decision.',
+      'Select the "Socratic Inquirer" or "Pattern Finder" persona.',
+      'Click "Reflect with AI".',
+      'Verify that the 6 structured reflection cards render: "What I Hear", "What Stands Out", "Connection to History", "Reflection", "Question to Consider", and "Small Next Step".',
+      'Verify that historical entries are cited accurately in "Connection to History".',
+      'Click on any follow-up prompt to append it directly into your reflection draft.'
+    ],
+    expectedResult: 'Structured RAG reflection is displayed with high-contrast formatting, personalized historical connections, and zero prompt leakage.',
+    category: 'RAG_REFLECTIONS' as any
+  },
+  {
+    id: 'TC-MULTIMODAL-001',
+    module: 'Multimodal Voice Transcription & Handwriting OCR',
+    testCaseName: 'Voice Dictation and Handwriting OCR Processing',
+    description: 'Verify that recording voice or uploading a photo of handwritten notes transcribes text directly into the journal editor.',
+    preconditions: 'Microphone permission granted in browser.',
+    testSteps: [
+      'Click the "Voice" button in the journal toolbar to begin recording.',
+      'Speak a test reflection and click "Stop & Transcribe".',
+      'Verify audio is transcribed and inserted into the active content buffer.',
+      'Click "Photo / OCR" and upload a handwritten notebook picture.',
+      'Verify Gemini Vision transcribes the handwritten text with confidence rating and offers one-click insertion.'
+    ],
+    expectedResult: 'Both speech and handwritten notes are converted to digital text accurately and added to the journal draft without losing prior edits.',
+    category: 'MULTIMODAL' as any
   }
 ];

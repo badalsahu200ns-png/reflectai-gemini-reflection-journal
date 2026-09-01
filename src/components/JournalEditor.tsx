@@ -33,7 +33,8 @@ import {
   Paperclip,
   X,
   MessageSquare,
-  Navigation
+  Navigation,
+  Palette
 } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -58,6 +59,8 @@ import { HandwritingOCRModal } from './HandwritingOCRModal';
 import { LocationPickerModal } from './LocationPickerModal';
 import { AI_PERSONAS, getPersonaById } from '../utils/personas';
 import { retrieveRelevantHistoricalEntries } from '../utils/ragHelper';
+import { useTheme } from '../context/ThemeContext';
+import { PetalOverlay } from './PetalOverlay';
 
 interface JournalEditorProps {
   initialEntry?: JournalEntry | null;
@@ -170,6 +173,8 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
   onSaveMemory
 }) => {
   const { user } = useAuth();
+  const { currentTheme, isDark, prefersReducedMotion, openAtmosphereModal } = useTheme();
+  const tColors = isDark ? currentTheme.dark : currentTheme.light;
 
   const [entryId, setEntryId] = useState<string>(initialEntry?.id || 'entry-' + Date.now());
   const [title, setTitle] = useState<string>(initialEntry?.title || '');
@@ -508,7 +513,25 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
   };
 
   return (
-    <div className="bg-[#0B0D0E] border border-[#1F2428] rounded-2xl p-4 sm:p-6 space-y-6 shadow-[0_20px_60px_rgba(0,0,0,0.8)]" id="journal-editor-container">
+    <div
+      className={`relative rounded-3xl p-4 sm:p-7 space-y-6 transition-all duration-300 ${tColors.writingPadBg} ${tColors.writingPadBorder} ${tColors.writingPadShadow} ${tColors.textPrimary} border overflow-hidden`}
+      id="journal-editor-container"
+    >
+      {/* Decorative Floating Petals & Ambient Particles */}
+      <PetalOverlay
+        themeId={currentTheme.id}
+        isDark={isDark}
+        reducedMotion={prefersReducedMotion}
+      />
+
+      {/* Subtle Paper Texture Overlay */}
+      {tColors.paperTextureOverlay && (
+        <div
+          className={`absolute inset-0 rounded-3xl pointer-events-none ${tColors.paperTextureOverlay}`}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Hidden file input for photo upload */}
       <input
         ref={fileInputRef}
@@ -522,11 +545,11 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       {/* Unsaved Local Draft Detected Banner */}
       {hasUnsavedDraft && (
         <div
-          className="p-3 sm:p-4 rounded-xl bg-[#171A1C] border border-[#76B900]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg"
+          className="relative z-10 p-3 sm:p-4 rounded-2xl bg-neutral-900/90 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg"
           id="banner-unsaved-draft"
         >
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#111416] border border-[#76B900]/40 flex items-center justify-center text-[#76B900] shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-neutral-800 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
               <HardDrive className="w-4 h-4" />
             </div>
             <div>
@@ -541,7 +564,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <button
               onClick={handleRestoreDraft}
-              className="px-3 py-1.5 rounded-lg bg-[#76B900] hover:bg-[#8FE000] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
               id="btn-restore-draft"
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -549,7 +572,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             </button>
             <button
               onClick={discardDraft}
-              className="px-2.5 py-1.5 rounded-lg bg-[#111416] hover:bg-[#22272B] text-neutral-400 hover:text-neutral-200 border border-[#2B3238] text-xs font-medium flex items-center gap-1 transition-colors"
+              className="px-2.5 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-neutral-200 border border-neutral-700 text-xs font-medium flex items-center gap-1 transition-colors"
               id="btn-discard-draft"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -560,41 +583,72 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       )}
 
       {/* Editor Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#1F2428] pb-4">
+      <div className={`relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3.5 border-b pb-4 ${tColors.dividerColor}`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#111416] border border-[#76B900]/40 flex items-center justify-center text-[#76B900] shadow-[0_0_12px_rgba(118,185,0,0.2)]">
+          <div
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-xs shrink-0 border"
+            style={{
+              backgroundColor: `${tColors.accentColor}20`,
+              borderColor: `${tColors.accentColor}40`,
+              color: tColors.accentColor
+            }}
+          >
             <FileEdit className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm font-bold text-white">Journal Editor</h2>
-              <span className="px-2 py-0.5 rounded bg-[#76B900]/15 text-[#8FE000] border border-[#76B900]/40 text-[10px] font-mono">
+              <h2 className="text-base font-bold flex items-center gap-1.5">
+                <span>Journal Writing Pad</span>
+                <span className="text-xs font-normal opacity-75">
+                  ({currentTheme.emoji} {currentTheme.name})
+                </span>
+              </h2>
+              <span
+                className="px-2 py-0.5 rounded-full text-[10px] font-mono border"
+                style={{
+                  backgroundColor: `${tColors.accentColor}15`,
+                  borderColor: `${tColors.accentColor}30`,
+                  color: tColors.accentColor
+                }}
+              >
                 UID: {user?.uid ? `${user.uid.slice(0, 8)}...` : 'Guest'}
               </span>
               <span
-                className="px-2 py-0.5 rounded bg-[#111416] text-neutral-400 border border-[#22272B] text-[10px] flex items-center gap-1"
+                className={`px-2 py-0.5 rounded-full ${tColors.textMuted} border border-black/10 dark:border-white/10 text-[10px] flex items-center gap-1`}
                 title="Synced to local storage"
               >
-                <HardDrive className="w-2.5 h-2.5 text-[#76B900]" />
+                <HardDrive className="w-2.5 h-2.5" style={{ color: tColors.accentColor }} />
                 {formattedLastSaved}
               </span>
             </div>
-            <p className="text-[11px] text-neutral-400">
+            <p className={`text-[11px] ${tColors.textSecondary}`}>
               Voice transcription, photo memories, notebook OCR, location tagging, and grounded Gemini RAG reflections.
             </p>
           </div>
         </div>
 
-        {/* Priority 3 Action Toolbars */}
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+        {/* Priority Action Toolbars */}
+        <div className="flex items-center gap-2 w-full lg:w-auto justify-start lg:justify-end flex-wrap">
+          {/* Atmosphere / Writing Pad Theme Trigger */}
+          <button
+            type="button"
+            onClick={openAtmosphereModal}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`}
+            title="Personalize writing pad atmosphere"
+            id="btn-editor-atmosphere-selector"
+          >
+            <Palette className="w-3.5 h-3.5" style={{ color: tColors.accentColor }} />
+            <span>Theme: {currentTheme.name}</span>
+          </button>
+
           {/* 1. Voice Journaling Modal Trigger */}
           <button
             type="button"
             onClick={() => setShowVoiceModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-[#111416] hover:bg-[#171A1C] text-neutral-300 hover:text-white border border-[#22272B] hover:border-[#17DBCF]/50 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`}
             title="Voice-to-Text Journaling with live speech waveform"
           >
-            <Mic className="w-3.5 h-3.5 text-[#17DBCF]" />
+            <Mic className="w-3.5 h-3.5 text-cyan-400" />
             <span>Voice</span>
           </button>
 
@@ -602,10 +656,10 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-3 py-1.5 rounded-xl bg-[#111416] hover:bg-[#171A1C] text-neutral-300 hover:text-white border border-[#22272B] hover:border-[#2176FF]/50 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`}
             title="Attach photo memories"
           >
-            <ImageIcon className="w-3.5 h-3.5 text-[#2176FF]" />
+            <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
             <span>Photo</span>
           </button>
 
@@ -613,10 +667,10 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           <button
             type="button"
             onClick={() => setShowOcrModal(true)}
-            className="px-3 py-1.5 rounded-xl bg-[#111416] hover:bg-[#171A1C] text-neutral-300 hover:text-white border border-[#22272B] hover:border-[#FFC107]/50 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs"
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`}
             title="Scan handwritten notebook page with Gemini Vision"
           >
-            <Camera className="w-3.5 h-3.5 text-[#FFC107]" />
+            <Camera className="w-3.5 h-3.5 text-amber-400" />
             <span>Scan OCR</span>
           </button>
 
@@ -626,28 +680,28 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             onClick={() => setShowLocationModal(true)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
               location
-                ? 'bg-[#00BCD4]/15 border-[#00BCD4]/50 text-[#00BCD4]'
-                : 'bg-[#111416] hover:bg-[#171A1C] text-neutral-300 hover:text-white border-[#22272B]'
+                ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-400 font-bold'
+                : `${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`
             }`}
             title="Tag physical or mindful sanctuary location"
           >
-            <MapPin className="w-3.5 h-3.5 text-[#00BCD4]" />
+            <MapPin className="w-3.5 h-3.5 text-cyan-400" />
             <span>{location ? location.name.slice(0, 14) : 'Location'}</span>
           </button>
 
           <button
             onClick={() => setIsPreviewMode(!isPreviewMode)}
-            className="px-3 py-1.5 rounded-xl bg-[#111416] hover:bg-[#171A1C] text-neutral-300 hover:text-white border border-[#22272B] text-xs font-medium flex items-center gap-1.5 transition-colors"
+            className={`px-3 py-1.5 rounded-xl border text-xs font-medium flex items-center gap-1.5 transition-colors ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText}`}
           >
-            <Eye className="w-3.5 h-3.5 text-[#595959]" />
+            <Eye className="w-3.5 h-3.5 opacity-70" />
             <span>{isPreviewMode ? 'Edit' : 'Preview'}</span>
           </button>
 
-          {/* Save Reflection Primary Action Button (#F44336) */}
+          {/* Save Reflection Primary Action Button */}
           <button
             onClick={() => handleSaveToFirestore()}
             disabled={isSaving || isReflecting || !content.trim()}
-            className="px-4 py-1.5 rounded-xl bg-[#F44336] hover:bg-[#D32F2F] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-xs active:scale-95 disabled:opacity-40"
+            className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-40"
             id="btn-save-firestore"
           >
             {isSaving ? (
@@ -663,11 +717,11 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             )}
           </button>
 
-          {/* AI Reflection CTA (#76B900) */}
+          {/* AI Reflection CTA */}
           <button
             onClick={handleGenerateRAGReflection}
             disabled={isReflecting || isSaving || !content.trim()}
-            className="px-4 py-1.5 rounded-xl bg-[#76B900] hover:bg-[#85c90d] text-black text-xs font-bold flex items-center gap-1.5 transition-all shadow-[0_0_18px_rgba(118,185,0,0.25)] active:scale-95 disabled:opacity-40"
+            className={`px-4 py-1.5 rounded-xl ${tColors.buttonPrimaryBg} ${tColors.buttonPrimaryHover} ${tColors.buttonPrimaryText} text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-40`}
             id="btn-editor-reflect"
           >
             {isReflecting ? (
@@ -686,10 +740,10 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       </div>
 
       {/* Metadata Configuration Fields */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Title Input */}
         <div className="sm:col-span-1 space-y-1">
-          <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+          <label className={`text-[11px] font-semibold uppercase tracking-wider ${tColors.textSecondary}`}>
             Title
           </label>
           <input
@@ -697,19 +751,19 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Morning Clarity & Decisions"
-            className="w-full bg-[#111416] border border-[#22272B] rounded-xl px-3.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#76B900] font-medium transition-colors"
+            className={`w-full ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} ${tColors.placeholderColor} ${tColors.inputFocusRing} rounded-xl px-3.5 py-2.5 text-xs font-medium border focus:outline-none transition-colors`}
           />
         </div>
 
         {/* Category Selector */}
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+          <label className={`text-[11px] font-semibold uppercase tracking-wider ${tColors.textSecondary}`}>
             Category
           </label>
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as any)}
-            className="w-full bg-[#111416] border border-[#22272B] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#76B900] cursor-pointer font-medium transition-colors"
+            className={`w-full ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} ${tColors.inputFocusRing} rounded-xl px-3.5 py-2.5 text-xs border focus:outline-none cursor-pointer font-medium transition-colors`}
           >
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
@@ -719,13 +773,13 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
 
         {/* Mood Selector */}
         <div className="space-y-1">
-          <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+          <label className={`text-[11px] font-semibold uppercase tracking-wider ${tColors.textSecondary}`}>
             Mindset / Mood
           </label>
           <select
             value={mood}
             onChange={(e) => setMood(e.target.value as JournalMood)}
-            className="w-full bg-[#111416] border border-[#22272B] rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#76B900] cursor-pointer font-medium transition-colors"
+            className={`w-full ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} ${tColors.inputFocusRing} rounded-xl px-3.5 py-2.5 text-xs border focus:outline-none cursor-pointer font-medium transition-colors`}
           >
             {MOODS.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -735,11 +789,11 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       </div>
 
       {/* Mood Scale & Emotion Pills */}
-      <div className="p-4 rounded-xl bg-[#111416] border border-[#1F2428] space-y-3">
+      <div className={`relative z-10 p-4 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-3`}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-neutral-300">Energy & Mood Scale:</span>
-            <span className="text-xs font-bold text-[#8FE000]">{moodScale} / 10</span>
+            <span className={`text-[11px] font-semibold ${tColors.textPrimary}`}>Energy & Mood Scale:</span>
+            <span className="text-xs font-bold" style={{ color: tColors.accentColor }}>{moodScale} / 10</span>
           </div>
           <input
             type="range"
@@ -747,12 +801,13 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             max={10}
             value={moodScale}
             onChange={(e) => setMoodScale(Number(e.target.value))}
-            className="w-full sm:w-48 accent-[#76B900] cursor-pointer"
+            className="w-full sm:w-48 cursor-pointer"
+            style={{ accentColor: tColors.accentColor }}
           />
         </div>
 
         <div className="flex items-center gap-1.5 flex-wrap pt-1">
-          <span className="text-[10px] uppercase font-bold text-neutral-500 mr-1">Felt Emotions:</span>
+          <span className={`text-[10px] uppercase font-bold mr-1 ${tColors.textMuted}`}>Felt Emotions:</span>
           {EMOTION_PILLS.map((em) => {
             const isSel = selectedEmotions.includes(em);
             return (
@@ -760,10 +815,10 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                 key={em}
                 type="button"
                 onClick={() => handleToggleEmotion(em)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                className={`px-2.5 py-1 rounded-xl text-[11px] font-medium transition-all ${
                   isSel
-                    ? 'bg-[#76B900] text-black font-bold shadow-xs'
-                    : 'bg-[#171A1C] text-neutral-400 hover:text-white border border-[#22272B]'
+                    ? `${tColors.buttonPrimaryBg} ${tColors.buttonPrimaryText} font-bold shadow-xs`
+                    : `${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.buttonSecondaryText} border`
                 }`}
               >
                 {em}
@@ -775,23 +830,23 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
 
       {/* Attached Location & Attached Photos Gallery Bar */}
       {(location || attachments.length > 0) && (
-        <div className="p-3.5 rounded-xl bg-[#111416] border border-[#1F2428] space-y-3">
+        <div className={`relative z-10 p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-3`}>
           {/* Location Badge */}
           {location && (
-            <div className="flex items-center justify-between bg-[#0B0D0E] border border-[#22272B] p-2.5 rounded-xl">
+            <div className={`flex items-center justify-between p-2.5 rounded-xl border ${tColors.dividerColor}`}>
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="p-1.5 rounded-lg bg-[#111416] text-[#76B900]">
+                <div className="p-1.5 rounded-lg text-cyan-400 bg-cyan-950/40">
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-neutral-200 truncate">{location.name}</p>
-                  <p className="text-[10px] text-neutral-400 truncate">{location.address || `GPS (${location.lat.toFixed(3)}, ${location.lng.toFixed(3)})`}</p>
+                  <p className={`text-xs font-semibold truncate ${tColors.textPrimary}`}>{location.name}</p>
+                  <p className={`text-[10px] truncate ${tColors.textMuted}`}>{location.address || `GPS (${location.lat.toFixed(3)}, ${location.lng.toFixed(3)})`}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setLocation(null)}
-                className="p-1 text-neutral-500 hover:text-rose-400"
+                className="p-1 text-neutral-400 hover:text-rose-400"
                 title="Remove Location"
               >
                 <X className="w-3.5 h-3.5" />
@@ -802,18 +857,18 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           {/* Photo Attachments List */}
           {attachments.length > 0 && (
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span className="font-semibold text-neutral-300 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#8FE000]" />
+              <div className="flex items-center justify-between text-xs">
+                <span className={`font-semibold flex items-center gap-1.5 ${tColors.textPrimary}`}>
+                  <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
                   Photo Attachments ({attachments.length})
                 </span>
-                <span className="text-[10px] text-neutral-500">Click to inspect or analyze with Gemini Vision</span>
+                <span className={`text-[10px] ${tColors.textMuted}`}>Click to inspect or analyze with Gemini Vision</span>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {attachments.map((att) => (
                   <div
                     key={att.id}
-                    className="relative group rounded-xl overflow-hidden bg-[#0B0D0E] border border-[#22272B] hover:border-[#76B900]/50 aspect-4/3 transition-all"
+                    className="relative group rounded-xl overflow-hidden border aspect-4/3 transition-all"
                   >
                     <img
                       src={att.url}
@@ -826,7 +881,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                       <button
                         type="button"
                         onClick={() => setActiveAnalysisAttachment(att)}
-                        className="p-1.5 rounded-lg bg-[#76B900] text-black font-bold text-xs"
+                        className={`p-1.5 rounded-lg ${tColors.buttonPrimaryBg} ${tColors.buttonPrimaryText} font-bold text-xs`}
                         title="Analyze with AI"
                       >
                         <Sparkles className="w-3.5 h-3.5" />
@@ -841,7 +896,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                       </button>
                     </div>
                     {att.caption && (
-                      <div className="absolute bottom-0 inset-x-0 bg-black/80 px-2 py-1 text-[10px] text-neutral-300 truncate font-sans">
+                      <div className="absolute bottom-0 inset-x-0 bg-black/80 px-2 py-1 text-[10px] text-white truncate font-sans">
                         {att.caption}
                       </div>
                     )}
@@ -854,13 +909,13 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       )}
 
       {/* AI Persona Selector */}
-      <div className="space-y-2">
+      <div className="relative z-10 space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Bot className="w-3.5 h-3.5 text-[#76B900]" />
+          <label className={`text-[11px] font-semibold uppercase tracking-wider flex items-center gap-1.5 ${tColors.textSecondary}`}>
+            <Bot className="w-3.5 h-3.5" style={{ color: tColors.accentColor }} />
             AI Reflection Persona
           </label>
-          <span className="text-[10px] text-neutral-500">
+          <span className={`text-[10px] ${tColors.textMuted}`}>
             {getPersonaById(selectedPersona).tagline}
           </span>
         </div>
@@ -873,14 +928,14 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                 key={p.id}
                 type="button"
                 onClick={() => setSelectedPersona(p.id)}
-                className={`p-2.5 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                className={`p-2.5 rounded-2xl border text-left transition-all flex flex-col justify-between ${
                   isSelected
-                    ? 'bg-[#14171A] border-[#76B900] text-white shadow-[0_0_15px_rgba(118,185,0,0.15)]'
-                    : 'bg-[#111416] border-[#22272B] text-neutral-400 hover:text-neutral-200 hover:border-[#2B3238]'
+                    ? `${tColors.buttonSecondaryBg} ring-2 ring-pink-500/60 ${tColors.textPrimary} shadow-md`
+                    : `${tColors.inputBg} ${tColors.inputBorder} ${tColors.textSecondary} hover:${tColors.textPrimary}`
                 }`}
               >
                 <div className="text-[11px] font-bold truncate">{p.name}</div>
-                <div className="text-[9px] text-neutral-400 line-clamp-1 mt-0.5">{p.tagline}</div>
+                <div className={`text-[9px] ${tColors.textMuted} line-clamp-1 mt-0.5`}>{p.tagline}</div>
               </button>
             );
           })}
@@ -888,12 +943,12 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       </div>
 
       {/* Main Text Input / Markdown Preview Area */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs text-neutral-400">
-          <label className="font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2">
+      <div className="relative z-10 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <label className={`font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 ${tColors.textSecondary}`}>
             Journal Body & Reflection Content
           </label>
-          <div className="flex items-center gap-2 text-[11px] font-mono">
+          <div className={`flex items-center gap-2 text-[11px] font-mono ${tColors.textMuted}`}>
             <span>{content.length} / 50,000 chars</span>
             <span>&bull;</span>
             <span>{content.split(/\s+/).filter(Boolean).length} words</span>
@@ -901,11 +956,11 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
         </div>
 
         {isPreviewMode ? (
-          <div className="min-h-[220px] max-h-[360px] overflow-y-auto p-4 rounded-xl bg-[#111416] border border-[#22272B] text-neutral-200 markdown-body text-xs sm:text-sm">
+          <div className={`min-h-[220px] max-h-[380px] overflow-y-auto p-4 sm:p-5 rounded-2xl border ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} markdown-body text-xs sm:text-sm`}>
             {content.trim() ? (
               <Markdown>{content}</Markdown>
             ) : (
-              <p className="text-neutral-500 italic">No content written yet.</p>
+              <p className={`italic ${tColors.textMuted}`}>No content written yet.</p>
             )}
           </div>
         ) : (
@@ -914,24 +969,24 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your thoughts, daily learnings, and decisions... Or capture using Voice, Photo attachments, or OCR Notebook Scanning above. (Markdown supported)"
             rows={10}
-            className="w-full bg-[#111416] border border-[#22272B] focus:border-[#76B900] focus:ring-1 focus:ring-[#76B900] rounded-xl p-4 text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none transition-all leading-relaxed font-sans"
+            className={`w-full ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} ${tColors.placeholderColor} ${tColors.inputFocusRing} rounded-2xl p-4 sm:p-5 text-xs sm:text-sm border focus:outline-none transition-all leading-relaxed font-sans`}
             id="journal-editor-textarea"
           />
         )}
       </div>
 
       {/* Tags input */}
-      <div className="flex items-center gap-2 flex-wrap text-xs">
-        <Tag className="w-3.5 h-3.5 text-neutral-500" />
+      <div className="relative z-10 flex items-center gap-2 flex-wrap text-xs">
+        <Tag className={`w-3.5 h-3.5 ${tColors.textMuted}`} />
         {tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 bg-[#111416] text-neutral-300 border border-[#22272B] px-2.5 py-0.5 rounded-lg text-[11px]"
+            className={`inline-flex items-center gap-1 ${tColors.inputBg} ${tColors.inputBorder} ${tColors.textPrimary} border px-2.5 py-0.5 rounded-lg text-[11px]`}
           >
             #{tag}
             <button
               onClick={() => handleRemoveTag(tag)}
-              className="text-neutral-500 hover:text-rose-400 font-bold ml-0.5"
+              className="hover:text-rose-400 font-bold ml-0.5 opacity-60 hover:opacity-100"
             >
               &times;
             </button>
@@ -943,20 +998,20 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           onChange={(e) => setTagInput(e.target.value)}
           onKeyDown={handleAddTag}
           placeholder="+ Add tag (Enter)"
-          className="bg-transparent border-none text-[11px] text-neutral-400 placeholder-neutral-600 focus:outline-none w-28"
+          className={`bg-transparent border-none text-[11px] ${tColors.textSecondary} ${tColors.placeholderColor} focus:outline-none w-28`}
         />
       </div>
 
-      {/* Grounded 6-Part RAG Reflection Card with NVIDIA-Inspired Visuals */}
+      {/* Grounded 6-Part RAG Reflection Card */}
       {ragReflection && (
-        <div className="p-5 sm:p-6 rounded-2xl bg-[#0E1113] border border-[#76B900]/40 space-y-4 shadow-[0_0_30px_rgba(118,185,0,0.08)]">
-          <div className="flex items-center justify-between border-b border-[#1F2428] pb-3">
-            <div className="flex items-center gap-2 text-[#76B900] font-bold text-xs">
-              <Sparkles className="w-4 h-4 text-[#8FE000]" />
+        <div className={`relative z-10 p-5 sm:p-6 rounded-3xl ${tColors.aiPanelBg} ${tColors.aiPanelBorder} ${tColors.aiPanelGlow} border space-y-4 shadow-xl`}>
+          <div className={`flex items-center justify-between border-b pb-3 ${tColors.dividerColor}`}>
+            <div className="flex items-center gap-2 font-bold text-xs" style={{ color: tColors.accentColor }}>
+              <Sparkles className="w-4 h-4" />
               <span className="tracking-wide uppercase">ReflectAI Grounded Reflection ({getPersonaById(ragReflection.personaUsed).name})</span>
             </div>
             {ragReflection.modelUsed && (
-              <span className="text-[10px] font-mono text-neutral-400 bg-[#111416] px-2 py-0.5 rounded border border-[#22272B]">
+              <span className={`text-[10px] font-mono ${tColors.textMuted} px-2 py-0.5 rounded border ${tColors.inputBorder}`}>
                 {ragReflection.modelUsed}
               </span>
             )}
@@ -964,64 +1019,64 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs leading-relaxed">
             {/* 1. What I Hear */}
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#1F2428] space-y-1.5">
-              <div className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5`}>
+              <div className={`text-[11px] font-bold uppercase tracking-wider ${tColors.textSecondary}`}>
                 1. What I Hear
               </div>
-              <p className="text-neutral-200 font-sans">{ragReflection.whatIHear}</p>
+              <p className={`${tColors.textPrimary} font-sans`}>{ragReflection.whatIHear}</p>
             </div>
 
             {/* 2. What Stands Out */}
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#1F2428] space-y-1.5">
-              <div className="text-[11px] font-bold text-[#8FE000] uppercase tracking-wider">
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5`}>
+              <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: tColors.accentColor }}>
                 2. What Stands Out
               </div>
-              <p className="text-neutral-200 font-sans">{ragReflection.whatStandsOut}</p>
+              <p className={`${tColors.textPrimary} font-sans`}>{ragReflection.whatStandsOut}</p>
             </div>
 
             {/* 3. Connection to Your History */}
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#1F2428] space-y-1.5 md:col-span-2">
-              <div className="text-[11px] font-bold text-[#76B900] uppercase tracking-wider flex items-center gap-1.5">
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5 md:col-span-2`}>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: tColors.accentColor }}>
                 <Compass className="w-3.5 h-3.5" />
                 3. Connection to Your History & Memories
               </div>
-              <p className="text-neutral-200 italic font-sans">{ragReflection.connectionToHistory}</p>
+              <p className={`${tColors.textPrimary} italic font-sans`}>{ragReflection.connectionToHistory}</p>
             </div>
 
             {/* 4. Reflection */}
-            <div className="p-4 rounded-xl bg-[#14171A] border border-[#22272B] space-y-1.5 md:col-span-2">
-              <div className="text-[11px] font-bold text-white uppercase tracking-wider">
+            <div className={`p-4 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5 md:col-span-2`}>
+              <div className={`text-[11px] font-bold uppercase tracking-wider ${tColors.textPrimary}`}>
                 4. Deep Personalized Reflection
               </div>
-              <div className="text-neutral-200 prose prose-invert max-w-none text-xs">
+              <div className={`${tColors.textPrimary} markdown-body text-xs`}>
                 <Markdown>{ragReflection.reflection}</Markdown>
               </div>
             </div>
 
             {/* 5. A Question to Consider */}
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#76B900]/30 space-y-1.5">
-              <div className="text-[11px] font-bold text-[#8FE000] uppercase tracking-wider flex items-center gap-1.5">
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5`}>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: tColors.accentColor }}>
                 <HelpCircle className="w-3.5 h-3.5" />
                 5. Question to Consider
               </div>
-              <p className="text-neutral-200 font-medium italic">"{ragReflection.questionToConsider}"</p>
+              <p className={`${tColors.textPrimary} font-medium italic`}>"{ragReflection.questionToConsider}"</p>
             </div>
 
             {/* 6. Small Next Step */}
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#76B900]/30 space-y-1.5">
-              <div className="text-[11px] font-bold text-[#76B900] uppercase tracking-wider flex items-center gap-1.5">
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-1.5`}>
+              <div className="text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5" style={{ color: tColors.accentColor }}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 6. Small Next Step
               </div>
-              <p className="text-neutral-200 font-sans">{ragReflection.smallNextStep}</p>
+              <p className={`${tColors.textPrimary} font-sans`}>{ragReflection.smallNextStep}</p>
             </div>
           </div>
 
           {/* Extracted Memories to Save */}
           {ragReflection.extractedMemories && ragReflection.extractedMemories.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-[#111416] border border-[#1F2428] space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 flex items-center gap-1.5">
-                <BookmarkPlus className="w-3.5 h-3.5 text-[#76B900]" />
+            <div className={`p-3.5 rounded-2xl ${tColors.inputBg} ${tColors.inputBorder} border space-y-2`}>
+              <div className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${tColors.textSecondary}`}>
+                <BookmarkPlus className="w-3.5 h-3.5" style={{ color: tColors.accentColor }} />
                 Extracted Insights (1-Click Save to AI Memory Vault)
               </div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -1030,12 +1085,12 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                     key={i}
                     type="button"
                     onClick={() => handleSaveMemoryItem(mem)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0B0D0E] hover:bg-[#171A1C] border border-[#22272B] hover:border-[#76B900] text-xs text-neutral-300 hover:text-white transition-all text-left"
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl ${tColors.buttonSecondaryBg} ${tColors.buttonSecondaryBorder} ${tColors.textPrimary} border text-xs transition-all text-left`}
                   >
                     {savedMemorySuccess === mem ? (
-                      <Check className="w-3.5 h-3.5 text-[#8FE000] shrink-0" />
+                      <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     ) : (
-                      <Plus className="w-3.5 h-3.5 text-[#76B900] shrink-0" />
+                      <Plus className="w-3.5 h-3.5 shrink-0" style={{ color: tColors.accentColor }} />
                     )}
                     <span>{mem}</span>
                   </button>
@@ -1047,7 +1102,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           {/* Follow-up Prompts */}
           {ragReflection.followUpPrompts && ragReflection.followUpPrompts.length > 0 && (
             <div className="space-y-1.5 pt-1">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${tColors.textMuted}`}>
                 Follow-up Journaling Prompts:
               </span>
               <div className="space-y-1">
@@ -1055,9 +1110,9 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
                   <div
                     key={idx}
                     onClick={() => setContent((prev) => (prev ? `${prev}\n\n**Reflection on Prompt:** ${p}\n` : p))}
-                    className="p-2.5 rounded-xl bg-[#111416] hover:bg-[#171A1C] border border-[#22272B] text-[11px] text-neutral-300 hover:text-white cursor-pointer transition-colors"
+                    className={`p-2.5 rounded-xl ${tColors.inputBg} ${tColors.inputBorder} border text-[11px] ${tColors.textPrimary} cursor-pointer transition-colors hover:border-pink-500/50`}
                   >
-                    &bull; {p} <span className="text-[#76B900] text-[10px] ml-1">(Click to add to text)</span>
+                    &bull; {p} <span className="text-[10px] ml-1 opacity-75" style={{ color: tColors.accentColor }}>(Click to add to text)</span>
                   </div>
                 ))}
               </div>
@@ -1065,7 +1120,7 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
           )}
 
           {/* Disclaimer */}
-          <p className="text-[10px] text-neutral-500 italic pt-2 text-center">
+          <p className={`text-[10px] ${tColors.textMuted} italic pt-2 text-center`}>
             ReflectAI reflections are for personal mindfulness and self-reflection, not professional medical diagnosis.
           </p>
         </div>

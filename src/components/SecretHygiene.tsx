@@ -18,19 +18,49 @@ export const SecretHygiene: FC = () => {
   const [secretName, setSecretName] = useState('GEMINI_API_KEY');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Scanner state
-  const [scannerInput, setScannerInput] = useState(`// Configuration File
+  // Scanner state with clean default (Zero Hardcoded Secrets)
+  const [scannerInput, setScannerInput] = useState(`// Configuration File (Hardened & Compliant)
 export const config = {
-  appName: "ThreatModeler",
+  appName: "ReflectAI",
   environment: "production",
-  // WARNING: Example of insecure hardcoding
-  geminiApiKey: "AIzaSyD9871234981273918239128391238",
-  authHeader: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  // Secure: Sourced dynamically via Google Cloud Secret Manager & Environment
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  authHeader: process.env.AUTH_HEADER_TOKEN
 };`);
-  const [scanFindings, setScanFindings] = useState(() => scanForExposedSecrets(scannerInput));
+  const [scanFindings, setScanFindings] = useState(() => scanForExposedSecrets(`// Configuration File (Hardened & Compliant)
+export const config = {
+  appName: "ReflectAI",
+  environment: "production",
+  // Secure: Sourced dynamically via Google Cloud Secret Manager & Environment
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  authHeader: process.env.AUTH_HEADER_TOKEN
+};`));
 
   const handleScanSecrets = () => {
     setScanFindings(scanForExposedSecrets(scannerInput));
+  };
+
+  const loadSampleVulnerable = () => {
+    const vulnerableSample = `// Configuration File (Vulnerable Sample)
+export const config = {
+  appName: "TestApp",
+  geminiApiKey: "AIzaSyD9871234981273918239128391238",
+  authHeader: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+};`;
+    setScannerInput(vulnerableSample);
+    setScanFindings(scanForExposedSecrets(vulnerableSample));
+  };
+
+  const loadSampleClean = () => {
+    const cleanSample = `// Configuration File (Hardened & Compliant)
+export const config = {
+  appName: "ReflectAI",
+  environment: "production",
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  authHeader: process.env.AUTH_HEADER_TOKEN
+};`;
+    setScannerInput(cleanSample);
+    setScanFindings(scanForExposedSecrets(cleanSample));
   };
 
   const copyToClipboard = (text: string, id: string) => {
@@ -144,12 +174,26 @@ def access_secret(secret_id: str = "${secretName}", version_id: str = "latest") 
             <Lock className="w-4 h-4 text-neutral-800" />
             Static Secret Exposure Scanner
           </h3>
-          <button
-            onClick={handleScanSecrets}
-            className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-xs font-medium"
-          >
-            Scan for Leaked Keys
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadSampleClean}
+              className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-medium"
+            >
+              Load Clean Config
+            </button>
+            <button
+              onClick={loadSampleVulnerable}
+              className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg text-xs font-medium"
+            >
+              Load Test Sample
+            </button>
+            <button
+              onClick={handleScanSecrets}
+              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg text-xs font-medium"
+            >
+              Scan for Leaked Keys
+            </button>
+          </div>
         </div>
         <p className="text-xs text-neutral-500 mb-3">
           Paste any code snippet, YAML config, or env file to scan for exposed Google API keys (`AIzaSy...`), JWTs, or private keys.

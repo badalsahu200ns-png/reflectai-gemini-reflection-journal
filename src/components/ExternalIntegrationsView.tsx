@@ -356,7 +356,7 @@ export const ExternalIntegrationsView: React.FC<ExternalIntegrationsViewProps> =
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
             <Bell className="w-5 h-5" />
-            <h1 className="text-xl sm:text-2xl font-serif font-semibold tracking-tight text-neutral-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-tight text-white">
               External Notifications & Webhook Integrations
             </h1>
           </div>

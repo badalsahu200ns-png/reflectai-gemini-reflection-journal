@@ -2,78 +2,135 @@
 
 @layer base {
   :root {
+    /* Official ReflectAI Brand Colors */
+    --reflect-black: #000000;
+    --reflect-surface: #111111;
+    --reflect-surface-subtle: #0A0A0A;
+    --reflect-surface-elevated: #151515;
+
+    --reflect-green: #76B900;
+    --reflect-green-hover: #86D100;
+    --reflect-green-active: #659E00;
+
+    --reflect-yellow: #FFD600;
+
+    --reflect-text-primary: #F5F5F5;
+    --reflect-text-secondary: #BDBDBD;
+    --reflect-text-muted: #888888;
+
+    --reflect-border: #262626;
+    --reflect-border-subtle: #1C1C1C;
+    --reflect-border-green: rgba(118, 185, 0, 0.4);
+
     --color-brand-primary: #76B900;
-    --color-brand-light: #8FE000;
-    --color-brand-dark: #5E9400;
+    --color-brand-light: #86D100;
+    --color-brand-dark: #659E00;
 
-    --color-heading-h1: #1A1A1A;
-    --color-heading-h2: #333333;
+    --color-heading-h1: #76B900;
+    --color-heading-h2: #F5F5F5;
 
-    --color-integration: #2176FF;
-    --color-collaboration: #F4B400;
-    --color-secure-data: #17DBCF;
-    --color-reports: #595959;
+    --color-integration: #76B900;
+    --color-collaboration: #FFD600;
+    --color-secure-data: #76B900;
+    --color-reports: #BDBDBD;
 
-    --color-action-primary: #F44336;
-    --color-action-primary-hover: #D32F2F;
-    --color-action-outline: #8BC34A;
+    --color-action-primary: #76B900;
+    --color-action-primary-hover: #86D100;
+    --color-action-outline: #76B900;
 
     --color-header-brand: #76B900;
-    --color-header-action: #F44336;
-    --color-header-special: #9C27B0;
+    --color-header-action: #76B900;
+    --color-header-special: #76B900;
 
-    --color-ai-special: #9C27B0;
-
-    --color-palette-cyan: #00BCD4;
-    --color-palette-lime: #CDDC39;
-    --color-palette-amber: #FFC107;
-    --color-palette-brown: #795548;
-    --color-palette-dark: #212121;
+    --color-ai-special: #76B900;
   }
 
-  .dark {
-    --color-heading-h1: #F5F5F5;
-    --color-heading-h2: #D4D4D4;
+  body {
+    background-color: #000000;
+    color: #F5F5F5;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   }
 }
 
 /* Custom Design-System Helpers */
-.text-heading-1 {
-  color: var(--color-heading-h1);
+.text-brand-green {
+  color: #76B900;
 }
 
-.text-heading-2 {
-  color: var(--color-heading-h2);
+.text-brand-yellow {
+  color: #FFD600;
 }
 
-/* Button Classes */
-.btn-primary-action {
-  background-color: #F44336;
-  color: #ffffff;
-  transition: all 0.15s ease-in-out;
-}
-.btn-primary-action:hover {
-  background-color: #D32F2F;
+.text-brand-primary {
+  color: #F5F5F5;
 }
 
-.btn-outline-action {
-  background-color: transparent;
-  border: 1px solid #8BC34A;
-  color: #8BC34A;
-  transition: all 0.15s ease-in-out;
-}
-.btn-outline-action:hover {
-  background-color: rgba(139, 195, 74, 0.12);
+.text-brand-secondary {
+  color: #BDBDBD;
 }
 
+.bg-brand-black {
+  background-color: #000000;
+}
+
+.bg-brand-surface {
+  background-color: #111111;
+}
+
+.bg-brand-surface-subtle {
+  background-color: #0A0A0A;
+}
+
+.bg-brand-surface-elevated {
+  background-color: #151515;
+}
+
+.border-brand {
+  border-color: #262626;
+}
+
+.border-brand-green {
+  border-color: rgba(118, 185, 0, 0.4);
+}
+
+/* Brand Buttons */
+.btn-primary-action,
+.btn-brand-primary,
 .btn-brand-action {
   background-color: #76B900;
   color: #000000;
   font-weight: 700;
   transition: all 0.15s ease-in-out;
 }
+.btn-primary-action:hover,
+.btn-brand-primary:hover,
 .btn-brand-action:hover {
-  background-color: #8FE000;
+  background-color: #86D100;
+}
+.btn-primary-action:active,
+.btn-brand-primary:active,
+.btn-brand-action:active {
+  background-color: #659E00;
+}
+
+.btn-outline-action,
+.btn-brand-secondary {
+  background-color: transparent;
+  border: 1px solid #76B900;
+  color: #76B900;
+  font-weight: 600;
+  transition: all 0.15s ease-in-out;
+}
+.btn-outline-action:hover,
+.btn-brand-secondary:hover {
+  background-color: rgba(118, 185, 0, 0.12);
+}
+
+/* Brand Card Style */
+.card-brand {
+  background-color: #111111;
+  border: 1px solid #262626;
+  border-radius: 1rem;
 }
 
 /* Custom Scrollbar */
@@ -82,12 +139,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333333;
+  background: #262626;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #595959;
+  background: #76B900;
 }

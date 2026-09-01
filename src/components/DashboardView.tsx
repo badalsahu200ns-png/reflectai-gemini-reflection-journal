@@ -34,6 +34,12 @@ import { JournalEditor } from './JournalEditor';
 import { JournalWorkspace } from './JournalWorkspace';
 import { AskMyJournalView } from './AskMyJournalView';
 import { MemoriesView } from './MemoriesView';
+import { MemoriesExperienceView } from './MemoriesExperienceView';
+import { AIMemoriesVaultView } from './AIMemoriesVaultView';
+import { AIReflectionLifeIntelView } from './AIReflectionLifeIntelView';
+import { GrowthView } from './GrowthView';
+import { ExploreView } from './ExploreView';
+import { NotificationsView } from './NotificationsView';
 import { AnalyticsView } from './AnalyticsView';
 import { MonthlySummaryView } from './MonthlySummaryView';
 import { FavoritesView } from './FavoritesView';
@@ -48,13 +54,18 @@ import { handleFirestoreError, OperationType } from '../firebase/firestoreErrors
 export type DashboardTab =
   | 'home'
   | 'journal'
+  | 'memories'
+  | 'ai_memories'
+  | 'ai_reflection'
+  | 'growth'
+  | 'explore'
+  | 'notifications'
+  | 'settings'
   | 'ask'
   | 'insights'
-  | 'memories'
   | 'favorites'
   | 'privacy'
-  | 'admin'
-  | 'settings';
+  | 'admin';
 
 export const DashboardView: React.FC = () => {
   const { user } = useAuth();
@@ -395,7 +406,7 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col md:flex-row transition-colors bg-[#0B0D0E] text-white font-sans selection:bg-[#76B900]/20 selection:text-[#8FE000]"
+      className="min-h-screen flex flex-col md:flex-row transition-colors bg-[#000000] text-[#F5F5F5] font-sans selection:bg-[#76B900]/20 selection:text-[#76B900]"
       id="reflectai-dashboard-root"
     >
       {/* 1. Global Left Navigation Sidebar */}
@@ -413,7 +424,7 @@ export const DashboardView: React.FC = () => {
       />
 
       {/* 2. Main Content Canvas */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen pb-20 md:pb-0 relative bg-[#0B0D0E]">
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto h-screen pb-20 md:pb-0 relative bg-[#000000]">
         <AnimatePresence mode="wait">
           {/* TAB 1: HOME */}
           {activeTab === 'home' && (
@@ -451,23 +462,23 @@ export const DashboardView: React.FC = () => {
             >
               {/* Top Sub-Bar for Journal: Entry Selector & Mode Switch */}
               <div
-                className="px-4 sm:px-6 py-3 border-b border-[#1F2428] flex items-center justify-between shrink-0 bg-[#0E1012]"
+                className="px-4 sm:px-6 py-3 border-b border-[#262626] flex items-center justify-between shrink-0 bg-[#0A0A0A]"
               >
                 <div className="flex items-center gap-3 overflow-x-auto no-scrollbar">
-                  <span className="text-xs font-bold uppercase tracking-wider text-neutral-400 shrink-0">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#76B900] shrink-0">
                     Reflection Studio
                   </span>
 
                   {/* Mode switcher */}
                   <div
-                    className="inline-flex p-0.5 rounded-xl border border-[#22272B] bg-[#111416] text-xs font-medium"
+                    className="inline-flex p-0.5 rounded-xl border border-[#262626] bg-[#111111] text-xs font-medium"
                   >
                     <button
                       onClick={() => setJournalViewMode('editor')}
                       className={`px-3 py-1 rounded-lg transition-colors ${
                         journalViewMode === 'editor'
                           ? 'bg-[#76B900] text-black font-bold shadow-xs'
-                          : 'text-neutral-400 hover:text-white'
+                          : 'text-[#BDBDBD] hover:text-[#F5F5F5]'
                       }`}
                     >
                       Studio Editor
@@ -477,7 +488,7 @@ export const DashboardView: React.FC = () => {
                       className={`px-3 py-1 rounded-lg transition-colors ${
                         journalViewMode === 'conversation'
                           ? 'bg-[#76B900] text-black font-bold shadow-xs'
-                          : 'text-neutral-400 hover:text-white'
+                          : 'text-[#BDBDBD] hover:text-[#F5F5F5]'
                       }`}
                     >
                       Dialogue View
@@ -487,7 +498,7 @@ export const DashboardView: React.FC = () => {
 
                 <button
                   onClick={() => handleCreateNewEntry()}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#76B900] hover:bg-[#8FE000] text-black text-xs font-bold shadow-[0_0_15px_rgba(118,185,0,0.2)] transition-all active:scale-95"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#76B900] hover:bg-[#86D100] active:bg-[#659E00] text-black text-xs font-bold shadow-[0_0_15px_rgba(118,185,0,0.2)] transition-all active:scale-95"
                   id="btn-journal-new"
                 >
                   <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -607,7 +618,7 @@ export const DashboardView: React.FC = () => {
             </motion.div>
           )}
 
-          {/* TAB 5: MEMORIES VAULT */}
+          {/* TAB: MEMORIES STUDIO */}
           {activeTab === 'memories' && (
             <motion.div
               key="memories"
@@ -617,13 +628,130 @@ export const DashboardView: React.FC = () => {
               transition={{ duration: 0.18 }}
               className="flex-1 p-4 sm:p-6 lg:p-8"
             >
-              <div className="max-w-4xl mx-auto">
-                <MemoriesView />
+              <div className="max-w-6xl mx-auto">
+                <MemoriesExperienceView />
               </div>
             </motion.div>
           )}
 
-          {/* TAB 6: FAVORITES */}
+          {/* TAB: AI MEMORY VAULT */}
+          {activeTab === 'ai_memories' && (
+            <motion.div
+              key="ai_memories"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-6xl mx-auto">
+                <AIMemoriesVaultView
+                  entries={entries}
+                  memories={memories}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: AI LIFE INTEL & REFLECTION */}
+          {activeTab === 'ai_reflection' && (
+            <motion.div
+              key="ai_reflection"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-6xl mx-auto">
+                <AIReflectionLifeIntelView
+                  entries={entries}
+                  memories={memories}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: GROWTH & RETROSPECTIVES */}
+          {activeTab === 'growth' && (
+            <motion.div
+              key="growth"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-6xl mx-auto">
+                <GrowthView
+                  entries={entries}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: EXPLORE & SANCTUARY */}
+          {activeTab === 'explore' && (
+            <motion.div
+              key="explore"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-6xl mx-auto">
+                <ExploreView
+                  entries={entries}
+                  memories={memories}
+                  onOpenEntry={(entryId) => {
+                    setActiveEntryId(entryId);
+                    setActiveTab('journal');
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: NOTIFICATIONS */}
+          {activeTab === 'notifications' && (
+            <motion.div
+              key="notifications"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18 }}
+              className="flex-1 p-4 sm:p-6 lg:p-8"
+            >
+              <div className="max-w-5xl mx-auto">
+                <NotificationsView
+                  notifications={notifications}
+                  onMarkAsRead={handleMarkNotifAsRead}
+                  onMarkAllAsRead={handleMarkAllNotifsAsRead}
+                  onClearAll={handleClearNotifs}
+                  onOpenReminderModal={() => setIsReminderModalOpen(true)}
+                  onNavigateTab={(tab, entryId) => {
+                    if (tab) setActiveTab(tab as DashboardTab);
+                    if (entryId) setActiveEntryId(entryId);
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {/* TAB: FAVORITES */}
           {activeTab === 'favorites' && (
             <motion.div
               key="favorites"
@@ -646,7 +774,7 @@ export const DashboardView: React.FC = () => {
             </motion.div>
           )}
 
-          {/* TAB 7: PRIVACY CENTER */}
+          {/* TAB: PRIVACY CENTER */}
           {activeTab === 'privacy' && (
             <motion.div
               key="privacy"
@@ -666,7 +794,7 @@ export const DashboardView: React.FC = () => {
             </motion.div>
           )}
 
-          {/* TAB 8: ADMIN & RBAC GOVERNANCE */}
+          {/* TAB: ADMIN & RBAC GOVERNANCE */}
           {activeTab === 'admin' && (
             <motion.div
               key="admin"
@@ -680,7 +808,7 @@ export const DashboardView: React.FC = () => {
             </motion.div>
           )}
 
-          {/* TAB 9: SETTINGS */}
+          {/* TAB: SETTINGS */}
           {activeTab === 'settings' && (
             <motion.div
               key="settings"

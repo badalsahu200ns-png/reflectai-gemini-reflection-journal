@@ -1,6 +1,6 @@
 {
-  "name": "Reflect AI Personal Gemini Journal",
-  "description": "Secure AI reflection assistant with context-aware prompts, long-term personal memory vault, grounded RAG reflections, Ask My Journal semantic search, voice-to-text, and Firestore owner-bound isolation.",
+  "name": "ReflectAI — Personal Life Intelligence",
+  "description": "Interactive personal self-understanding workspace with grounded journal evidence, user-authored identity reflection, personal SWOT, Career Compass, AI Study Guru, AI Guru ethical guidance, and user-controlled memories.",
   "requestFramePermissions": ["microphone", "geolocation", "camera"],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

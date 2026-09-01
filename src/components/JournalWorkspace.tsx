@@ -25,9 +25,11 @@ import {
   Lock,
   AlertCircle,
   CheckCircle,
-  Layers
+  Layers,
+  Palette
 } from 'lucide-react';
 import Markdown from 'react-markdown';
+import { useTheme } from '../context/ThemeContext';
 import {
   JournalEntry,
   EntryTurn,
@@ -78,6 +80,7 @@ export const JournalWorkspace: React.FC<JournalWorkspaceProps> = ({
   isSaving,
   onAiStateChange
 }) => {
+  const { currentTheme, tColors, openAtmosphereModal } = useTheme();
   const [inputText, setInputText] = useState(() => {
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -497,6 +500,18 @@ export const JournalWorkspace: React.FC<JournalWorkspaceProps> = ({
 
         {/* Right Action buttons */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Atmosphere theme selector button */}
+          <button
+            type="button"
+            onClick={openAtmosphereModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 text-xs font-semibold shadow-xs transition-all"
+            title="Personalize journal writing pad atmosphere"
+            id="btn-workspace-atmosphere-selector"
+          >
+            <Palette className="w-3.5 h-3.5" style={{ color: tColors.accentColor }} />
+            <span>Theme: {currentTheme.name}</span>
+          </button>
+
           {/* Summarize button */}
           <button
             onClick={handleGenerateSummary}
