@@ -9,6 +9,23 @@ export type SeverityLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFORMATIO
 
 export type UserRole = 'admin' | 'moderator' | 'member' | 'guest';
 
+export type AuthState =
+  | 'UNAUTHENTICATED'
+  | 'GOOGLE_AUTHENTICATED'
+  | 'OTP_PENDING'
+  | 'APPLICATION_ACCESS_GRANTED';
+
+export interface OtpChallengeState {
+  challengeId: string | null;
+  maskedEmail: string;
+  expiresAt: number | null;
+  cooldownSeconds: number;
+  isSending: boolean;
+  isVerifying: boolean;
+  error: string | null;
+  attemptsRemaining: number;
+}
+
 export interface UserProfile {
   uid: string;
   email: string | null;
@@ -981,6 +998,11 @@ export interface GuruGuidancePath {
   tradeoffs: string[];
 }
 
+export interface GroundedWebSource {
+  title: string;
+  url: string;
+}
+
 export interface GuruGuidanceResult {
   coreDilemma: string;
   valuesAtStake: string[];
@@ -989,6 +1011,9 @@ export interface GuruGuidanceResult {
   introspectiveQuestion: string;
   practicalNextStep: string;
   generatedAt: string;
+  groundedSources?: GroundedWebSource[];
+  webSearchQueries?: string[];
+  isSearchGrounded?: boolean;
 }
 
 export interface PersonalPrinciple {

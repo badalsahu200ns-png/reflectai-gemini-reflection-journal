@@ -14,12 +14,14 @@ import {
   Palette,
   Download,
   FileText,
-  Archive
+  Archive,
+  Camera
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme, ThemeMode } from '../context/ThemeContext';
 import { AIPersonaId } from '../types';
 import { AI_PERSONAS } from '../utils/personas';
+import { CameraAvatarModal } from './CameraAvatarModal';
 
 interface SettingsViewProps {
   onOpenPrivacyCenter: () => void;
@@ -31,8 +33,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onOpenPrivacyCenter,
   onOpenSecurityInspector
 }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateProfileAvatar } = useAuth();
   const { mode, isDark, setMode, currentTheme, setJournalTheme, openAtmosphereModal } = useTheme();
+
+  const [showCameraModal, setShowCameraModal] = useState<boolean>(false);
 
   const [selectedPersona, setSelectedPersona] = useState<AIPersonaId>(() => {
     try {
@@ -153,18 +157,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            {user?.photoURL ? (
-              <img
-                src={user.photoURL}
-                alt={user.displayName || 'User'}
-                className="w-12 h-12 rounded-full object-cover border border-[#333B42]"
-                referrerPolicy="no-referrer"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-[#76B900]/15 text-[#8FE000] border border-[#76B900]/30 flex items-center justify-center font-bold text-base">
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
-              </div>
-            )}
+            <div className="relative group">
+              {user?.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || 'User'}
+                  className="w-14 h-14 rounded-full object-cover border-2 border-[#333B42] group-hover:border-[#76B900] transition-colors shadow-sm"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-[#76B900]/15 text-[#8FE000] border-2 border-[#76B900]/30 flex items-center justify-center font-bold text-base">
+                  {user?.displayName ? user.displayName.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowCameraModal(true)}
+                className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#76B900] hover:bg-[#8FE000] text-black shadow-md transition-transform active:scale-95 border border-black"
+                title="Take photo using camera"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
             <div>
               <p className="text-sm font-semibold text-white">
@@ -173,9 +187,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <p className="text-xs text-neutral-400">
                 {user?.email || 'Authenticated via Google'}
               </p>
-              <span className="inline-block mt-1 text-[10px] font-mono uppercase bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
-                Google SSO Verified
-              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="inline-block text-[10px] font-mono uppercase bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">
+                  Google SSO Verified
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCameraModal(true)}
+                  className="text-[11px] text-[#8FE000] hover:underline font-medium flex items-center gap-1"
+                >
+                  <Camera className="w-3 h-3" /> Change Avatar
+                </button>
+              </div>
             </div>
           </div>
 
@@ -441,6 +464,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </button>
         </div>
       </section>
+
+      {/* Camera Profile Avatar Modal */}
+      <CameraAvatarModal
+        isOpen={showCameraModal}
+        onClose={() => setShowCameraModal(false)}
+        onSaveAvatar={async (photoDataUrl) => {
+          await updateProfileAvatar(photoDataUrl);
+          flashSuccess('Profile avatar updated with your device camera photo!');
+        }}
+        currentPhotoURL={user?.photoURL}
+      />
     </div>
   );
 };

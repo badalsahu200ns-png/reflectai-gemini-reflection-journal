@@ -70,24 +70,37 @@ export const AdminView: React.FC = () => {
 
   // 2. Fetch operational telemetry metrics from server
   useEffect(() => {
+    let isMounted = true;
     async function fetchMetrics() {
       setLoadingMetrics(true);
       try {
-        const res = await fetch('/api/admin/metrics');
-        if (res.ok) {
+        const res = await fetch('/api/admin/metrics', {
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
           const data = await res.json();
-          setMetrics(data);
+          if (isMounted) {
+            setMetrics(data);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch admin metrics:', err);
+        console.warn('Notice while fetching admin metrics:', err);
       } finally {
-        setLoadingMetrics(false);
+        if (isMounted) {
+          setLoadingMetrics(false);
+        }
       }
     }
 
     fetchMetrics();
     const interval = setInterval(fetchMetrics, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   // 3. Load audit trail

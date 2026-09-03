@@ -215,27 +215,57 @@ ReflectAI uses a React + Express + Google Cloud architecture.
 
 ---
 
-# 🔐 4. Google SSO & Authentication
+# 🔐 4. Google SSO, Gmail OTP 2FA & 7-Day Reflection Experience
 
-Authentication is handled through **Firebase Authentication with Google Sign-In**.
+ReflectAI implements a **two-tier authentication system** pairing Firebase Google OAuth with a secondary server-verified **Gmail OTP (Two-Factor Authentication)** security gate, ensuring complete protection of private reflections.
 
 ## Authentication Flow
 
-1. User opens ReflectAI.
-2. User selects **Continue with Google**.
-3. Firebase Authentication completes the OAuth flow.
-4. The authenticated Firebase user receives a unique UID.
-5. The UID becomes the security boundary for user-specific data.
-6. Protected application functionality becomes available.
-7. Backend requests are processed within the authenticated user context.
+```text
+User opens application
+        ↓
+Secure Login Page (with 7-Day Dynamic Reflection Quote)
+        ↓
+Continue with Google (Firebase OAuth)
+        ↓
+Google Authentication Successful
+        ↓
+Send single-use 6-digit OTP to user's verified Gmail address
+        ↓
+OTP Verification Screen (Auto-focus, paste, 5-min TTL, rate-limiting)
+        ↓
+OTP Verified Successfully via HMAC-SHA256 Signed Session Token
+        ↓
+Create / Load User Profile in Firestore
+        ↓
+Grant Application Access & Open ReflectAI Dashboard
+```
 
-## Security Principles
+## Dynamic 7-Day Reflection Quote Experience
 
-* Google SSO is the primary authentication mechanism.
-* User identity is based on Firebase UID.
-* Client-provided user identifiers are not trusted for authorization.
-* Private journal content is scoped to the authenticated user.
-* Administrative privileges are handled separately from normal user access.
+The login interface features a deterministic, calendar-based **7-Day Reflection Quote Experience** that cycles seamlessly across seven foundational reflection mindsets:
+- **Day 1 · PAUSE**: *“Before you change your life, take a moment to notice the life you are already living.”*
+- **Day 2 · REMEMBER**: *“Your past is not just where you have been; it is evidence of how far you have come.”*
+- **Day 3 · NOTICE**: *“Patterns often whisper before they become impossible to ignore.”*
+- **Day 4 · UNDERSTAND**: *“Sometimes clarity begins with asking yourself a better question.”*
+- **Day 5 · LEARN**: *“Every experience leaves something behind. Reflection helps you discover what it taught you.”*
+- **Day 6 · GROW**: *“Growth is not always becoming someone new; sometimes it is finally understanding who you already are.”*
+- **Day 7 · BEGIN**: *“You do not need to have your whole future figured out. You only need to understand your next step.”*
+
+## Secure Logout & Temporary Data Wipe Utility
+
+The `AuthContext` provides a comprehensive `secureLogout` / `signOut` utility that:
+1. Revokes the active Firebase Authentication session via `signOut(auth)`.
+2. Clears all session tokens and temporary draft memory across `sessionStorage` and `localStorage` (including `reflectai_session_token_*`, `draft_*`, etc.).
+3. Resets all React authentication states (`user`, `pendingUser`, `firebaseUser`, `otpState`).
+4. Re-locks the application and immediately redirects the user to the Login page.
+
+## Security Architecture Guarantees
+
+* **Zero Password Exposure**: Relies strictly on Google Federated Identity and one-time ephemeral codes.
+* **Brute-Force & Rate-Limiting Defense**: Maximum 5 attempts allowed per challenge with automated IP/UID rate limiting.
+* **Cryptographic Token Verification**: Session tokens are signed using HMAC-SHA256 with 24-hour expiration.
+* **Isolated User Scope**: Application and Firestore remains completely inaccessible until both Google OAuth and OTP verification succeed.
 
 ---
 

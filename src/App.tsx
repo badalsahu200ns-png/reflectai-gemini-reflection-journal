@@ -36,9 +36,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-6 text-white text-center">
-          <div className="max-w-md w-full p-6 bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-950/80 border border-amber-800/60 flex items-center justify-center text-amber-400 mx-auto">
+        <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center p-6 text-white text-center">
+          <div className="max-w-md w-full p-6 bg-[#0A0A0A] border border-neutral-800 rounded-2xl shadow-2xl space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-amber-950/80 border border-amber-800/60 flex items-center justify-center text-[#FFCC00] mx-auto">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <h1 className="text-base font-bold text-white">Temporary Application Glitch</h1>
@@ -47,7 +47,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
             </p>
             <button
               onClick={this.handleReset}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-all shadow"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#76B900] hover:bg-[#88d400] text-black text-xs font-bold transition-all shadow"
             >
               <RefreshCw className="w-4 h-4" />
               Reload Application
@@ -62,18 +62,22 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const MainApp: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { authState, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-neutral-400 gap-3">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs font-mono tracking-wider">Verifying authenticated session...</p>
+      <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center text-neutral-400 gap-3">
+        <div className="w-8 h-8 border-2 border-[#76B900] border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-mono tracking-wider text-neutral-400">Verifying secure authentication session...</p>
       </div>
     );
   }
 
-  return user ? <DashboardView /> : <LandingView />;
+  if (authState === 'APPLICATION_ACCESS_GRANTED') {
+    return <DashboardView />;
+  }
+
+  return <LandingView />;
 };
 
 export default function App() {
@@ -87,4 +91,3 @@ export default function App() {
     </ErrorBoundary>
   );
 }
-

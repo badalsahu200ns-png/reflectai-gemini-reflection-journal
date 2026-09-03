@@ -945,9 +945,21 @@ export const JournalEditor: React.FC<JournalEditorProps> = ({
       {/* Main Text Input / Markdown Preview Area */}
       <div className="relative z-10 space-y-2">
         <div className="flex items-center justify-between text-xs">
-          <label className={`font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 ${tColors.textSecondary}`}>
-            Journal Body & Reflection Content
-          </label>
+          <div className="flex items-center gap-2.5">
+            <label className={`font-semibold uppercase tracking-wider text-[11px] flex items-center gap-2 ${tColors.textSecondary}`}>
+              Journal Body & Reflection Content
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowVoiceModal(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-400 text-[11px] font-semibold border border-cyan-500/30 transition-all shadow-xs"
+              title="Speak your thoughts directly into the editor"
+              id="btn-voice-dictate-direct"
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Voice-to-Text</span>
+            </button>
+          </div>
           <div className={`flex items-center gap-2 text-[11px] font-mono ${tColors.textMuted}`}>
             <span>{content.length} / 50,000 chars</span>
             <span>&bull;</span>

@@ -11,7 +11,10 @@ import {
   Lightbulb,
   Bookmark,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Globe,
+  ExternalLink,
+  Search
 } from 'lucide-react';
 import { GuruGuidanceResult, JournalEntry, AIMemory } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -53,21 +56,26 @@ export const AIGuruView: React.FC<AIGuruViewProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          query: dilemma,
           dilemma,
           context,
           values,
+          userValues: values,
           entries,
           memories
         })
       });
 
-      if (!res.ok) throw new Error('Failed');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to synthesize guidance');
+      }
 
       const data: GuruGuidanceResult = await res.json();
       setGuidance(data);
-      showToast('Ethical decision synthesis generated.');
-    } catch {
-      showToast('Could not synthesize guidance.');
+      showToast('Grounded ethical decision guidance synthesized.');
+    } catch (err: any) {
+      showToast(err.message || 'Could not synthesize guidance.');
     } finally {
       setIsLoading(false);
     }
@@ -252,6 +260,68 @@ export const AIGuruView: React.FC<AIGuruViewProps> = ({
                 "{guidance.ethicalConsiderations}"
               </p>
             </div>
+
+            {/* Google Search Grounding Verification Block */}
+            {guidance.isSearchGrounded && (
+              <div className="p-4 rounded-xl bg-[#101418] border border-[#4285F4]/30 space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-[#4285F4] font-mono uppercase flex items-center gap-1.5">
+                    <Globe className="w-3.5 h-3.5" />
+                    Google Search Grounding & Verified References
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-mono bg-emerald-950/60 border border-emerald-800/50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Live Web Knowledge Grounded
+                  </span>
+                </div>
+
+                {guidance.webSearchQueries && guidance.webSearchQueries.length > 0 && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider flex items-center gap-1">
+                      <Search className="w-3 h-3 text-neutral-500" />
+                      Executed Search Queries:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {guidance.webSearchQueries.map((q, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded bg-neutral-900 border border-neutral-800 text-[11px] text-neutral-300 font-mono"
+                        >
+                          "{q}"
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {guidance.groundedSources && guidance.groundedSources.length > 0 ? (
+                  <div className="space-y-1 pt-1">
+                    <span className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">
+                      Verified Reference Sources:
+                    </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {guidance.groundedSources.map((source, idx) => (
+                        <a
+                          key={idx}
+                          href={source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-between p-2 rounded-lg bg-neutral-900/80 hover:bg-neutral-800 border border-neutral-800 hover:border-[#4285F4]/50 transition-all text-[11px] text-neutral-200 group"
+                        >
+                          <span className="truncate max-w-[200px] font-medium group-hover:text-[#4285F4]">
+                            {source.title || 'Web Reference'}
+                          </span>
+                          <ExternalLink className="w-3 h-3 text-neutral-500 group-hover:text-[#4285F4] shrink-0 ml-1.5" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-neutral-400 italic">
+                    Grounded with up-to-date ethical frameworks and contemporary decision modeling.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Step 6 & 7: Introspective Question & Practical Next Step */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -27,6 +27,7 @@ import { calculateStreak } from '../utils/streak';
 import { computePersonalAnalytics } from '../utils/analytics';
 import { logAuditEvent } from '../utils/auditLogger';
 import { useAuth } from '../context/AuthContext';
+import { MoodKeywordDashboard } from './MoodKeywordDashboard';
 
 interface AnalyticsViewProps {
   entries: JournalEntry[];
@@ -250,6 +251,9 @@ ${weeklySummary.nextWeekPrompts.map((p) => `- ${p}`).join('\n')}`;
           ))}
         </div>
       </div>
+
+      {/* Recharts Mood Trends & Keyword Frequency Dashboard */}
+      <MoodKeywordDashboard entries={entries} onSelectEntry={onOpenEntry} />
 
       {/* Weekly AI Summary Card (if generated or available) */}
       {weeklySummary && (
