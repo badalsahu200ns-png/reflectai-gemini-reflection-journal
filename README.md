@@ -499,33 +499,90 @@ User-specific data is organized under authenticated user IDs.
 
 # 🛡️ 9. Firestore Security Rules
 
-ReflectAI follows a **default-deny, user-scoped security model**.
+ReflectAI follows a **default-deny, user-scoped security model**. All interactions, reflections, and sensitive journal collections are strictly isolated by the user's authenticated UID (`request.auth.uid == userId`).
 
-Representative rules:
+### Core Campaign Security Rule Block
+The exact rules block supporting user data isolation:
 
 ```javascript
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /users/{userId}/interactions/{interactionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+```
 
+### Full Production Rules (`firestore.rules`)
+ReflectAI's complete deployed security policy enforcing user data isolation, subcollection protection, immutable audit trails, and default-deny:
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Owner-bound user journal entries and reflection documents
+    match /users/{userId}/entries/{entryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 2. Owner-bound personal AI memories & extracted knowledge
+    match /users/{userId}/memories/{memoryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 3. Owner-bound personal weekly summaries and analytics
+    match /users/{userId}/weeklySummaries/{summaryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 4. Owner-bound personal monthly summaries
+    match /users/{userId}/monthlySummaries/{summaryId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 5. Owner-bound notification & theme settings & preferences & integrations
+    match /users/{userId}/settings/{settingId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/preferences/{prefId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/integrations/{integrationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/notificationLogs/{logId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /users/{userId}/notifications/{notificationId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 6. Owner-bound cached insights
+    match /users/{userId}/insights/{insightId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 7. Owner-bound personal interactions and chat history (Campaign Verification)
+    match /users/{userId}/interactions/{interactionId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 8. User profile documents
     match /users/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-                   && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
 
-    match /users/{userId}/{collection}/{documentId} {
-      allow read, write: if request.auth != null
-                            && request.auth.uid == userId;
-    }
-
+    // 9. Audit logs: Authenticated users can create audit events, read requires authenticated access
     match /auditLogs/{logId} {
       allow create: if request.auth != null;
       allow read: if request.auth != null;
-      allow update, delete: if false;
+      allow update, delete: if false; // Immutable audit trail
     }
 
+    // 10. Default Deny: All other unspecified paths are strictly locked
     match /{document=**} {
       allow read, write: if false;
     }
@@ -653,9 +710,23 @@ Do not store secrets in:
 
 Production credentials should be managed through **Google Cloud Secret Manager** or an equivalent secure secret-management mechanism.
 
+### Secret Manager Bindings
+Execute the following commands to provision and bind your secrets securely for Cloud Run:
+
+```bash
+# Create and populate the secret
+gcloud secrets create GEMINI_API_KEY --replication-policy="automatic"
+echo -n "YOUR_API_KEY" | gcloud secrets versions add GEMINI_API_KEY --data-file=-
+
+# Grant the default Cloud Run service account access to read the secret
+gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
+  --member="serviceAccount:YOUR_PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+```
+
 Examples of sensitive configuration include:
 
-* Gemini credentials
+* Gemini credentials (`GEMINI_API_KEY`)
 * external service credentials
 * OAuth client secrets where applicable
 * notification provider credentials
@@ -704,6 +775,15 @@ gcloud run deploy reflect-ai-journal \
   --region us-central1 \
   --allow-unauthenticated \
   --port=3000
+```
+
+### Required Campaign Verification Labeling
+Apply the mandatory challenge resource label to register the Cloud Run service for automated verification:
+
+```bash
+gcloud run services update reflect-ai-journal \
+  --update-labels=dev-tutorial=cloud-run-ai-challenge \
+  --region=us-central1
 ```
 
 The exact deployment command may vary depending on your project configuration, build system, runtime, and secret bindings.
