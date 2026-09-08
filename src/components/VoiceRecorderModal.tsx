@@ -205,10 +205,27 @@ export const VoiceRecorderModal: React.FC<VoiceRecorderModalProps> = ({
       recognitionRef.current = recognition;
       recognition.start();
     } catch (err: any) {
-      console.error('Microphone access error:', err);
+      const isDismissedOrDenied =
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        err.name === 'AbortError' ||
+        (err.message && (
+          err.message.includes('dismissed') ||
+          err.message.includes('denied') ||
+          err.message.includes('Permission')
+        ));
+
+      if (isDismissedOrDenied) {
+        console.info('[VoiceRecorder] Microphone permission was dismissed or not granted by user.');
+      } else {
+        console.warn('[VoiceRecorder] Microphone access notice:', err?.message || err);
+      }
+
       setHasPermission(false);
       setErrorMessage(
-        'Unable to access microphone. Please check your browser permissions.'
+        isDismissedOrDenied
+          ? 'Microphone permission was dismissed or blocked. Click to grant microphone access, or type your reflection.'
+          : 'Unable to access microphone. Please check your browser permissions.'
       );
     }
   };

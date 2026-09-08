@@ -144,11 +144,26 @@ export const RealVideoRecorderModal: React.FC<RealVideoRecorderModalProps> = ({
         console.warn('Audio visualization context not available:', err);
       }
     } catch (err: any) {
-      console.error('Camera access error:', err);
+      const isDismissedOrDenied =
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        err.name === 'AbortError' ||
+        (err.message && (
+          err.message.includes('dismissed') ||
+          err.message.includes('denied') ||
+          err.message.includes('Permission')
+        ));
+
+      if (isDismissedOrDenied) {
+        console.info('[VideoRecorder] Camera or microphone permission was dismissed or not granted by user.');
+      } else {
+        console.warn('[VideoRecorder] Camera access notice:', err?.message || err);
+      }
+
       setHasCameraPermission(false);
       setPermissionError(
-        err.name === 'NotAllowedError'
-          ? 'Camera/Microphone permission was denied. Please grant permission in your browser.'
+        isDismissedOrDenied
+          ? 'Camera/Microphone permission was dismissed or blocked. Click "Retry Camera Access" below when you are ready, or upload a video recording.'
           : err.name === 'NotFoundError'
           ? 'No camera or microphone device found on this system.'
           : 'Could not access camera: ' + (err.message || 'Unknown error')

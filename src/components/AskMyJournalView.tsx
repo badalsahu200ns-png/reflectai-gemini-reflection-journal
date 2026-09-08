@@ -215,7 +215,7 @@ export const AskMyJournalView: React.FC<AskMyJournalViewProps> = ({
 
       setMessages((prev) => [...prev, aiMsg]);
     } catch (err: any) {
-      console.error('Ask Journal Error:', err);
+      console.info('[AskJournal] Fetch recovery active, rendering local synthesis:', err?.message || err);
 
       // Local graceful fallback if fetch fails
       const fallbackCitation = entries.length > 0 ? [{

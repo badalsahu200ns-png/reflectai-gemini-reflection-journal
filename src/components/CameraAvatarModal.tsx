@@ -81,10 +81,25 @@ export const CameraAvatarModal: React.FC<CameraAvatarModalProps> = ({
         });
       }
     } catch (err: any) {
-      console.error('Camera initialization error:', err);
+      const isDismissedOrDenied =
+        err.name === 'NotAllowedError' ||
+        err.name === 'PermissionDeniedError' ||
+        err.name === 'AbortError' ||
+        (err.message && (
+          err.message.includes('dismissed') ||
+          err.message.includes('denied') ||
+          err.message.includes('Permission')
+        ));
+
+      if (isDismissedOrDenied) {
+        console.info('[CameraAvatar] Camera permission was dismissed or not granted by user.');
+      } else {
+        console.warn('[CameraAvatar] Camera initialization notice:', err?.message || err);
+      }
+
       let message = 'Unable to access camera. Please check camera permissions.';
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        message = 'Camera permission was denied. Please allow camera access in your browser settings.';
+      if (isDismissedOrDenied) {
+        message = 'Camera permission was dismissed or not allowed. Click "Retry Camera" when you are ready, or upload an avatar image.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         message = 'No camera device found on this system.';
       }
